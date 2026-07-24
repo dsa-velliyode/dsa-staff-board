@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Board — DSA Velliyode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C2B3A;
+  --ink-soft:#48586A;
+  --ink-faint:#8A93A0;
+  --paper:#FAF8F3;
+  --card:#FFFFFF;
+  --border:#E4DFCE;
+  --gold:#A6802E;
+  --gold-soft:#F3EBD8;
+  --teal:#2F6F62;
+  --teal-soft:#E7F1EE;
+  --red:#A23B3B;
+  --red-soft:#F7EAEA;
+  --shadow:0 2px 10px rgba(28,43,58,.06),0 1px 2px rgba(28,43,58,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Source Sans 3',sans-serif;-webkit-font-smoothing:antialiased}
+.disp{font-family:'Cormorant Garamond',serif}
+.wrap{max-width:520px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;padding-bottom:90px}
+
+/* ── LETTERHEAD ── */
+.letterhead{background:var(--card);border-bottom:1px solid var(--border);padding:22px 20px 16px;text-align:center;position:relative}
+.crest{width:56px;height:56px;border-radius:50%;background:var(--gold-soft);border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:26px;color:var(--gold)}
+.lh-name{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:21px;letter-spacing:.02em;color:var(--ink);line-height:1.2}
+.lh-sub{font-size:11px;color:var(--ink-faint);margin-top:2px;letter-spacing:.03em}
+.lh-rule{width:120px;height:2px;margin:10px auto 0;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.lh-title{font-family:'Cormorant Garamond',serif;font-weight:600;font-style:italic;font-size:15px;color:var(--gold);margin-top:8px;letter-spacing:.04em}
+#syncBadge{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;color:var(--ink-faint);margin-top:8px;font-weight:600;letter-spacing:.03em}
+.led{display:inline-block;width:6px;height:6px;border-radius:50%}
+.led.green{background:#2F6F62}.led.amber{background:#B08D2E}.led.red{background:#A23B3B}
+
+/* ── NAV ── */
+.nav{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40}
+.nav-btn{flex:1;padding:12px 4px;text-align:center;font-size:12px;font-weight:600;color:var(--ink-faint);background:none;border:none;cursor:pointer;letter-spacing:.02em;border-bottom:2px solid transparent}
+.nav-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+.section{display:none;padding:18px 16px}
+.section.active{display:block}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.eyebrow{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--gold);margin-bottom:10px}
+
+/* ── RECOGNITION (top 3) ── */
+.recog{display:flex;gap:10px;margin-bottom:14px}
+.recog-card{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 8px 12px;text-align:center;box-shadow:var(--shadow);position:relative}
+.recog-card.first{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),var(--card) 60%)}
+.seal{width:44px;height:44px;border-radius:50%;margin:0 auto 6px;position:relative;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--card)}
+.seal.rank1{border:2px solid var(--gold);color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+.seal.rank2{border:2px solid #9AA3AD;color:#6B7480;box-shadow:0 0 0 3px #F0F1F2}
+.seal.rank3{border:2px solid #B8895F;color:#8C633F;box-shadow:0 0 0 3px #F5EBE2}
+.recog-av{width:44px;height:44px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block;border:2px solid var(--border)}
+.recog-name{font-size:11.5px;font-weight:700;color:var(--ink);line-height:1.25}
+.recog-role{font-size:9px;color:var(--ink-faint);margin-top:1px;line-height:1.2}
+.recog-coins{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:19px;color:var(--gold);margin-top:4px}
+
+/* ── STAFF ROWS / LEDGER ── */
+.staff-row{display:flex;align-items:center;gap:11px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+.staff-row:last-child{border-bottom:none}
+.staff-av{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border);background:var(--gold-soft);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:13px}
+.staff-info{flex:1;min-width:0}
+.staff-name{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-role{font-size:10.5px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-coins{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:18px;color:var(--gold);flex-shrink:0}
+.rank-num{width:20px;font-size:11px;color:var(--ink-faint);font-weight:700;flex-shrink:0;text-align:center}
+
+/* ── BUTTONS / INPUTS ── */
+.btn{display:inline-block;padding:10px 16px;border-radius:7px;border:1px solid transparent;font-size:13px;font-weight:600;cursor:pointer;text-align:center;letter-spacing:.01em}
+.btn-primary{background:var(--ink);color:#fff}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-outline{background:var(--card);color:var(--ink);border-color:var(--border)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11.5px;border-radius:6px}
+label{font-size:11.5px;color:var(--ink-faint);display:block;margin-bottom:4px;font-weight:600}
+input,select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:7px;font-size:13.5px;margin-bottom:12px;background:#fff;color:var(--ink);font-family:inherit}
+input:focus,select:focus{outline:none;border-color:var(--gold)}
+
+/* ── SUB TABS ── */
+.subtabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--paper);border:1px solid var(--border);padding:4px;border-radius:9px;margin-bottom:14px}
+.subtab{flex:1;min-width:31%;padding:8px 4px;text-align:center;font-size:11.5px;font-weight:600;color:var(--ink-faint);background:none;border:none;border-radius:6px;cursor:pointer}
+.subtab.active{background:var(--card);color:var(--gold);box-shadow:var(--shadow)}
+
+/* ── HISTORY ROWS ── */
+.hist-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;font-size:12px}
+.hist-row:last-child{border-bottom:none}
+.hbadge{padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.hbadge.gold{background:var(--gold-soft);color:var(--gold)}
+.hbadge.red{background:var(--red-soft);color:var(--red)}
+.hbadge.name{background:var(--teal-soft);color:var(--teal)}
+.hcat{flex:1;min-width:120px;color:var(--ink-soft)}
+.hdate{font-size:10.5px;color:var(--ink-faint);white-space:nowrap}
+.btn-edit-sm,.btn-del-sm{border:none;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer}
+.btn-edit-sm{background:var(--teal-soft);color:var(--teal)}
+.btn-del-sm{background:var(--red-soft);color:var(--red)}
+
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(28,43,58,.5);z-index:300;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:22px 18px 26px;max-height:88vh;overflow-y:auto}
+.modal-title{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:19px;margin-bottom:14px}
+.close-x{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--ink-faint);cursor:pointer}
+
+.pw-overlay{display:none;position:fixed;inset:0;background:rgba(28,43,58,.55);z-index:400;align-items:center;justify-content:center;padding:20px}
+.pw-overlay.open{display:flex}
+.pw-box{background:var(--card);border-radius:14px;padding:26px 22px;max-width:340px;width:100%;text-align:center}
+.pw-box .crest{margin-bottom:10px}
+#pwErr{color:var(--red);font-size:12px;margin-top:6px;min-height:16px}
+
+.empty-state{text-align:center;padding:24px 10px;color:var(--ink-faint);font-size:12.5px}
+
+/* ── ADMIN BAR ── */
+.admin-bar{display:none;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;padding:9px 16px;font-size:12px}
+.admin-bar button{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer}
+
+/* ── PROFILE MODAL ── */
+.prof-av-wrap{text-align:center;margin-bottom:10px}
+.prof-av{width:76px;height:76px;border-radius:50%;object-fit:cover;border:2.5px solid var(--gold);margin:0 auto}
+.prof-name{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;text-align:center;margin-top:8px}
+.prof-role{font-size:12px;color:var(--ink-faint);text-align:center}
+.pstats{display:flex;gap:8px;margin:14px 0}
+.pstat{flex:1;text-align:center;background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:10px 4px}
+.pstat-val{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:var(--gold)}
+.pstat-lbl{font-size:9.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* ── PRINT ── */
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;top:0;left:0;width:100%;padding:14px;color:#1C2B3A}
+  @page{margin:12mm}
+}
+.pr-header{text-align:center;border-bottom:3px double #1C2B3A;padding-bottom:10px;margin-bottom:14px}
+.pr-acad{font-size:19px;font-weight:800;color:#1C2B3A}
+.pr-sub{font-size:11px;color:#555;margin-top:2px}
+.pr-title{font-size:15px;font-weight:800;margin-top:10px;color:#A6802E}
+.pr-stats{display:flex;gap:10px;margin:14px 0}
+.pr-stat{flex:1;border:2px solid #A6802E;border-radius:10px;padding:10px;text-align:center}
+.pr-stat .v{font-size:20px;font-weight:800;color:#1C2B3A}
+.pr-stat .l{font-size:9px;text-transform:uppercase;color:#666;font-weight:700}
+.pr-table{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:6px}
+.pr-table th{background:#F3EBD8;color:#1C2B3A;padding:6px 5px;text-align:left;border-bottom:2px solid #1C2B3A;font-weight:800}
+.pr-table td{padding:5px;border-bottom:1px solid #ddd;color:#1C2B3A}
+.pr-table tr:nth-child(even) td{background:#FAF8F3}
+.pr-ach{border:1px solid #ccc;border-radius:8px;padding:9px 11px;margin-bottom:8px;break-inside:avoid}
+.pr-ach h4{margin:0 0 5px;font-size:11.5px;color:#1C2B3A}
+.pr-chip{display:inline-block;font-size:9.5px;background:#F3EBD8;border:1px solid #E4D3A0;border-radius:20px;padding:2px 8px;margin:2px 3px 0 0;color:#333}
+.pr-foot{text-align:center;font-size:9px;color:#888;margin-top:16px;border-top:1px solid #ddd;padding-top:6px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:500;transition:transform .3s;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.error{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="letterhead">
+    <div class="crest">☾</div>
+    <div class="lh-name">VALIYULLAHI THANGAL MEMORIAL<br>DARUSSALAM ACADEMY (DSA)</div>
+    <div class="lh-sub">Velliyode, Kerala</div>
+    <div class="lh-rule"></div>
+    <div class="lh-title">Staff Recognition Board</div>
+    <div id="syncBadge"><i class="led amber"></i> Connecting&hellip;</div>
+  </div>
+
+  <div class="admin-bar" id="adminBar">
+    <span>Signed in: <b id="adminName"></b></span>
+    <button onclick="logout()">Sign out</button>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showTab('board',this)">Board</button>
+    <button class="nav-btn" onclick="showTab('reports',this)">Reports</button>
+    <button class="nav-btn" onclick="showTab('admin',this)">Admin</button>
+  </div>
+
+  <!-- BOARD -->
+  <div class="section active" id="tab-board">
+    <div class="recog" id="recog"></div>
+    <div class="card">
+      <div class="eyebrow">Staff Rankings</div>
+      <div id="boardList"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="section" id="tab-reports">
+    <div class="card">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="repType" onchange="repOffset=0;renderReports()" style="flex:1;min-width:110px;margin-bottom:0">
+          <option value="week">Weekly</option>
+          <option value="month" selected>Monthly</option>
+          <option value="year">Annually</option>
+          <option value="all">All-time</option>
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="repOffset--;renderReports()">&#8592;</button>
+        <button class="btn btn-outline btn-sm" onclick="repOffset=0;renderReports()">Today</button>
+        <button class="btn btn-outline btn-sm" onclick="repOffset++;renderReports()">&#8594;</button>
+        <button class="btn btn-gold btn-sm" onclick="printReport()">Print</button>
+      </div>
+      <div id="repLabel" style="font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:4px"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Coins earned this period</div>
+      <div id="repList"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Category breakdown</div>
+      <div id="repCatList"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="section" id="tab-admin">
+    <div class="card" id="loginCard">
+      <div class="eyebrow">Principal Login Required</div>
+      <p style="font-size:12.5px;color:var(--ink-faint);margin-top:0">Sign in to award coins, manage categories, or edit staff profiles.</p>
+      <button class="btn btn-gold" style="width:100%" onclick="openModal('pwOv')">Sign in</button>
+    </div>
+
+    <div id="adminPanel" style="display:none">
+      <div class="subtabs">
+        <button class="subtab active" onclick="showSub('addCoins',this)">Add Coins</button>
+        <button class="subtab" onclick="showSub('deductCoins',this)">Deduct</button>
+        <button class="subtab" onclick="showSub('editProf',this)">Staff</button>
+        <button class="subtab" onclick="showSub('cats',this)">Categories</button>
+        <button class="subtab" onclick="showSub('hist',this)">History</button>
+      </div>
+
+      <div id="subtab-addCoins">
+        <div class="card">
+          <label>Staff member</label>
+          <select id="selStaff"><option value="">-- Select --</option></select>
+          <label>Category</label>
+          <select id="selCat" onchange="autofill()"><option value="">-- Select --</option></select>
+          <label>Coins</label>
+          <input type="number" id="coinAmt" min="1" placeholder="e.g. 5">
+          <label>Note (optional)</label>
+          <input type="text" id="coinNote" placeholder="e.g. Excellent guidance to students">
+          <label>Date</label>
+          <input type="date" id="coinDate">
+          <button class="btn btn-gold" style="width:100%;padding:11px" onclick="addCoins()">Award Coins</button>
+        </div>
+      </div>
+
+      <div id="subtab-deductCoins" style="display:none">
+        <div class="card">
+          <label>Staff member</label>
+          <select id="dedStaff"><option value="">-- Select --</option></select>
+          <label>Reason</label>
+          <input type="text" id="dedReason" placeholder="e.g. Late submission of records">
+          <label>Coins to deduct</label>
+          <input type="number" id="dedAmt" min="1" placeholder="e.g. 2">
+          <label>Note (optional)</label>
+          <input type="text" id="dedNote">
+          <label>Date</label>
+          <input type="date" id="dedDate">
+          <button class="btn btn-danger" style="width:100%;padding:11px" onclick="deductCoins()">Deduct Coins</button>
+        </div>
+      </div>
+
+      <div id="subtab-editProf" style="display:none">
+        <div class="card">
+          <label>Staff member</label>
+          <select id="epStaff" onchange="loadEP()"><option value="">-- Select --</option></select>
+          <div id="epFields" style="display:none">
+            <div style="text-align:center;margin-bottom:10px">
+              <div class="prof-av" id="epAvEl" style="margin:0 auto"></div>
+              <label style="display:inline-block;margin-top:8px;cursor:pointer">
+                <span class="btn btn-outline btn-sm">Upload photo</span>
+                <input type="file" id="epPhotoIn" accept="image/*" style="display:none" onchange="uploadEpPic(this)">
+              </label>
+            </div>
+            <label>Role / Designation</label>
+            <input type="text" id="epRole">
+            <label>Place</label>
+            <input type="text" id="epPlace">
+            <button class="btn btn-primary" style="width:100%" onclick="saveProfile()">Save changes</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="subtab-cats" style="display:none">
+        <div class="card">
+          <label>New category name</label>
+          <input type="text" id="newCatName" placeholder="e.g. Punctuality Excellence">
+          <label>Default coins</label>
+          <input type="number" id="newCatCoins" min="1" placeholder="e.g. 5">
+          <button class="btn btn-primary" style="width:100%" onclick="addCat()">Add Category</button>
+        </div>
+        <div class="card"><div class="eyebrow">Existing categories</div><div id="catList"></div></div>
+      </div>
+
+      <div id="subtab-hist" style="display:none">
+        <div class="card">
+          <input type="text" id="histSearch" placeholder="Search by name..." oninput="renderHist()">
+          <div id="histList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Password modal -->
+<div class="pw-overlay" id="pwOv">
+  <div class="pw-box">
+    <div class="crest" style="margin:0 auto 10px">☾</div>
+    <div class="modal-title" style="text-align:center">Principal Sign-in</div>
+    <input type="password" id="pwIn" placeholder="Enter PIN" style="text-align:center;letter-spacing:.2em">
+    <div id="pwErr"></div>
+    <button class="btn btn-gold" style="width:100%" onclick="checkPw()">Sign in</button>
+    <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="closeModal('pwOv')">Cancel</button>
+  </div>
+</div>
+
+<!-- Profile modal -->
+<div class="modal-overlay" id="profOv">
+  <div class="modal" style="position:relative">
+    <button class="close-x" onclick="closeModal('profOv')">&times;</button>
+    <div class="prof-av-wrap">
+      <div class="prof-av" id="pAvEl"></div>
+      <div class="prof-name" id="pName">-</div>
+      <div class="prof-role" id="pRole">-</div>
+    </div>
+    <div class="pstats">
+      <div class="pstat"><div class="pstat-val" id="pCoins">0</div><div class="pstat-lbl">Coins</div></div>
+      <div class="pstat"><div class="pstat-val" id="pRank">-</div><div class="pstat-lbl">Rank</div></div>
+      <div class="pstat"><div class="pstat-val" id="pAch">0</div><div class="pstat-lbl">Records</div></div>
+    </div>
+    <div class="eyebrow">History</div>
+    <div id="pHistList"></div>
+  </div>
+</div>
+
+<!-- Edit history modal -->
+<div class="modal-overlay" id="editOv">
+  <div class="modal" style="position:relative">
+    <button class="close-x" onclick="closeModal('editOv')">&times;</button>
+    <div class="modal-title" id="editTitle">Edit entry</div>
+    <label>Category</label>
+    <input type="text" id="editCat">
+    <label>Coins</label>
+    <input type="number" id="editCoins">
+    <label>Note</label>
+    <input type="text" id="editNote">
+    <button class="btn btn-primary" style="width:100%" onclick="saveEdit()">Save changes</button>
+  </div>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+const STAFF=[
+ {id:1,n:"Usthad Sharafuddeen Hudawi",place:"Kondotty",role:"Principal"},
+ {id:2,n:"Usthad Qasim Darimi",place:"Panthippoyil",role:"Administrator & Welfare Coordinator"},
+ {id:3,n:"Ismayil Wafy",place:"Velliyode",role:"Staff Secretary"},
+ {id:4,n:"Al Ameen Wafy",place:"Nilambur",role:"Manager & PRO"},
+ {id:5,n:"Usthad Savad Wafy",place:"Kunjom",role:"Academic Assistant"},
+ {id:6,n:"Usthad Muhammed Arafath Hudawi",place:"Vanimal",role:"Librarian & S2 Class Teacher"},
+ {id:7,n:"Usthad Faris Hudawi",place:"Feroke",role:"IT Coordinator & S3 Class Teacher"},
+ {id:8,n:"Usthad Rabeeh Hudawi",place:"Aroor",role:"ILM Coordinator & S1 Class Teacher"}
+];
+const ADMIN={name:"Usthad Sharafuddeen Hudawi",pw:"80241"};
+
+let S={cats:[],profiles:{},coins:{},history:[]};
+let admin=null,editId=null,editRoll=-1,profRoll=-1,repOffset=0,fbReady=false;
+let PICS={};
+
+function ini(n){var p=n.replace('Usthad ','').trim().split(' ');return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+function avatarHTML(id,size,fs){
+  size=size||42;fs=fs||13;
+  var p=S.profiles[id]||{};var s=STAFF.find(function(x){return x.id===id;});
+  if(p.pic)return '<img src="'+p.pic+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border)">';
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:'+fs+'px;flex-shrink:0;border:1.5px solid var(--border)">'+ini(s.n)+'</div>';
+}
+function sortedSTAFF(){return[...STAFF].sort(function(a,b){return(S.coins[b.id]||0)-(S.coins[a.id]||0);});}
+function getRank(id){var sorted=sortedSTAFF();return sorted.findIndex(function(s){return s.id===id;})+1;}
+
+function showToast(msg,type){
+  var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'success')+' show';
+  setTimeout(function(){t.className='toast';},3200);
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function showTab(t,btn){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+t).classList.add('active');
+  btn.classList.add('active');
+  if(t==='board')renderBoard();
+  if(t==='reports')renderReports();
+  if(t==='admin'){document.getElementById('coinDate').value=todayISO();document.getElementById('dedDate').value=todayISO();}
+}
+function showSub(t,btn){
+  document.querySelectorAll('[id^="subtab-"]').forEach(function(e){e.style.display='none';});
+  document.querySelectorAll('.subtab').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('subtab-'+t).style.display='block';
+  btn.classList.add('active');
+  if(t==='cats')renderCatList();
+  if(t==='hist')renderHist();
+}
+
+function checkPw(){
+  var v=document.getElementById('pwIn').value;
+  if(v===ADMIN.pw){
+    admin=ADMIN;closeModal('pwOv');
+    auth.signInWithEmailAndPassword(ADMIN_AUTH_EMAIL,ADMIN_AUTH_PW).catch(function(e){
+      console.error('Auth failed',e);showToast('Signed in, but cloud auth failed','error');
+    });
+    document.getElementById('pwIn').value='';document.getElementById('pwErr').textContent='';
+    document.getElementById('adminBar').style.display='flex';
+    document.getElementById('adminName').textContent=admin.name;
+    document.getElementById('loginCard').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    fillSelects();renderCatList();renderHist();
+    document.getElementById('coinDate').value=todayISO();document.getElementById('dedDate').value=todayISO();
+  }else{document.getElementById('pwErr').textContent='Incorrect PIN.';}
+}
+document.getElementById('pwIn').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
+function logout(){
+  admin=null;auth.signOut().catch(function(e){console.error(e);});
+  document.getElementById('adminBar').style.display='none';
+  document.getElementById('loginCard').style.display='block';
+  document.getElementById('adminPanel').style.display='none';
+}
+
+/* ── FIRESTORE SYNC ── */
+function stateForSync(){
+  var copy=JSON.parse(JSON.stringify({cats:S.cats,profiles:S.profiles}));
+  Object.keys(copy.profiles||{}).forEach(function(k){if(copy.profiles[k])delete copy.profiles[k].pic;});
+  return copy;
+}
+function cacheLocal(){try{localStorage.setItem('sadad_staff_v1',JSON.stringify({cats:S.cats,profiles:S.profiles,history:S.history}));}catch(e){}}
+function save(){
+  cacheLocal();
+  docRef.set(stateForSync()).catch(function(e){console.error('Save failed',e);});
+}
+function recompute(){
+  STAFF.forEach(function(s){S.coins[s.id]=0;});
+  S.history.forEach(function(h){S.coins[h.r]=(S.coins[h.r]||0)+h.coins;});
+}
+function mergePics(){
+  Object.keys(PICS).forEach(function(k){
+    var id=parseInt(k);
+    if(PICS[k]){if(!S.profiles[id])S.profiles[id]={};S.profiles[id].pic=PICS[k];}
+  });
+}
+function load(){
+  docRef.onSnapshot({includeMetadataChanges:true},function(snap){
+    if(snap.exists){
+      var d=snap.data();
+      S.cats=d.cats||[];S.profiles=d.profiles||{};
+    }else{
+      docRef.set(stateForSync()).catch(function(e){console.error('Init failed',e);});
+    }
+    mergePics();fbReady=true;
+    updateSyncBadge(snap.metadata.fromCache,snap.metadata.hasPendingWrites);
+    refreshCurrentView();
+  },function(err){console.error('Sync error',err);updateSyncBadge(true,false,true);});
+}
+function loadHistory(){
+  historyRef.onSnapshot({includeMetadataChanges:true},function(snap){
+    var arr=[];
+    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,r:d.r,name:d.name,cat:d.cat,coins:d.coins,note:d.note||'',addedBy:d.addedBy||'',date:d.date,ts:d.ts});});
+    arr.sort(function(a,b){var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0;var tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0;return ta-tb;});
+    S.history=arr;recompute();cacheLocal();
+    updateSyncBadge(snap.metadata.fromCache,snap.metadata.hasPendingWrites);
+    refreshCurrentView();
+  },function(err){console.error('History sync error',err);});
+}
+function initPicsListener(){
+  picsRef.onSnapshot(function(snap){
+    snap.docChanges().forEach(function(ch){
+      var id=parseInt(ch.doc.id);
+      if(ch.type==='removed'){PICS[ch.doc.id]=null;if(S.profiles[id])delete S.profiles[id].pic;}
+      else{PICS[ch.doc.id]=ch.doc.data().pic;if(!S.profiles[id])S.profiles[id]={};S.profiles[id].pic=ch.doc.data().pic;}
+    });
+    refreshCurrentView();
+  },function(err){console.error('Pics sync error',err);});
+}
+function savePic(id,dataURL){
+  if(!S.profiles[id])S.profiles[id]={};
+  S.profiles[id].pic=dataURL;PICS[String(id)]=dataURL;
+  picsRef.doc(String(id)).set({pic:dataURL}).catch(function(e){console.error(e);showToast('Photo upload failed','error');});
+}
+function compressImage(file,cb){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var maxDim=420,w=img.width,h=img.height;
+      if(w>h){if(w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}}else{if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}}
+      var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/jpeg',.72));
+    };
+    img.onerror=function(){cb(e.target.result);};
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function updateSyncBadge(fromCache,pending,isError){
+  var b=document.getElementById('syncBadge');if(!b)return;
+  if(isError){b.innerHTML='<i class="led red"></i> Offline';return;}
+  if(pending){b.innerHTML='<i class="led amber"></i> Saving&hellip;';return;}
+  if(fromCache){b.innerHTML='<i class="led amber"></i> Reconnecting&hellip;';return;}
+  b.innerHTML='<i class="led green"></i> Synced live';
+}
+function refreshCurrentView(){
+  fillSelects();
+  if(document.getElementById('tab-board').classList.contains('active'))renderBoard();
+  if(document.getElementById('tab-reports').classList.contains('active'))renderReports();
+  if(admin){renderCatList();renderHist();}
+  var pOv=document.getElementById('profOv');
+  if(pOv&&pOv.classList.contains('open')&&profRoll>0)openProfile(profRoll);
+}
+function todayISO(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function dateStrFromInput(id){
+  var el=document.getElementById(id);var v=el&&el.value;
+  if(v){var p=v.split('-');return parseInt(p[2])+'/'+parseInt(p[1])+'/'+p[0];}
+  var now=new Date();return now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear();
+}
+function fillSelects(){
+  ['selStaff','dedStaff','epStaff'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">-- Select --</option>';
+    STAFF.forEach(function(s){var o=document.createElement('option');o.value=s.id;o.textContent=s.n;el.appendChild(o);});
+  });
+  var sc=document.getElementById('selCat');
+  if(sc){sc.innerHTML='<option value="">-- Select --</option>';
+    S.cats.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.coins+')';sc.appendChild(o);});}
+}
+function autofill(){var id=document.getElementById('selCat').value;var cat=S.cats.find(function(c){return c.id===id;});if(cat)document.getElementById('coinAmt').value=cat.coins;}
+
+/* ── BOARD ── */
+function renderBoard(){
+  var sorted=sortedSTAFF();
+  document.getElementById('boardList').innerHTML=sorted.map(function(s,i){
+    return '<div class="staff-row" onclick="openProfile('+s.id+')">'
+      +'<span class="rank-num">'+(i+1)+'</span>'
+      +avatarHTML(s.id,42,13)
+      +'<div class="staff-info"><div class="staff-name">'+s.n+'</div><div class="staff-role">'+s.role+', '+s.place+'</div></div>'
+      +'<div class="staff-coins">'+(S.coins[s.id]||0)+'</div></div>';
+  }).join('');
+  renderRecog(sorted);
+}
+function renderRecog(sorted){
+  var top=sorted.slice(0,3).filter(function(s){return(S.coins[s.id]||0)>0;});
+  var el=document.getElementById('recog');
+  if(!top.length){el.innerHTML='';return;}
+  var seals=['rank1','rank2','rank3'];var marks=['&#9733;','&#9734;','&#9734;'];
+  el.innerHTML=top.map(function(s,i){
+    var p=S.profiles[s.id]||{};
+    var av=p.pic?'<img class="recog-av" src="'+p.pic+'">':'<div class="seal '+seals[i]+'">'+marks[i]+'</div>';
+    return '<div class="recog-card'+(i===0?' first':'')+'" onclick="openProfile('+s.id+')">'+av
+      +'<div class="recog-name">'+s.n+'</div><div class="recog-role">'+s.role+'</div>'
+      +'<div class="recog-coins">'+(S.coins[s.id]||0)+'</div></div>';
+  }).join('');
+}
+
+// Draw the roster right now, before Firebase is even touched. If the CDN
+// scripts below are slow, blocked, or fail outright, the board still shows
+// immediately (all zero coins) instead of staying blank.
+try{renderBoard();}catch(e){console.error('Initial render failed',e);}
+
+const firebaseConfig={
+  apiKey:"AIzaSyB3i-t7qKgiFCPTBF9oMBGdyxeADyJUByc",
+  authDomain:"second-batch-dsa-sadad.firebaseapp.com",
+  projectId:"second-batch-dsa-sadad",
+  storageBucket:"second-batch-dsa-sadad.firebasestorage.app",
+  messagingSenderId:"628256626216",
+  appId:"1:628256626216:web:56bbd3a78a242e1291871d"
+};
+var db,auth,docRef,historyRef,picsRef;
+var ADMIN_AUTH_EMAIL='admin@sadad-secondbatch-dsa.app';
+var ADMIN_AUTH_PW='Sadad@SecondBatch2026';
+try{
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.firestore();
+  auth=firebase.auth();
+  docRef=db.collection('sadad_staff').doc('main');
+  historyRef=db.collection('sadad_staff_history');
+  picsRef=db.collection('sadad_staff_pics');
+}catch(e){
+  console.error('Firebase failed to initialize',e);
+  var b=document.getElementById('syncBadge');
+  if(b)b.innerHTML='<i class="led red"></i> Offline (reload page)';
+}
+
+/* ── PROFILE ── */
+function openProfile(id){
+  profRoll=id;var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
+  var av=document.getElementById('pAvEl');
+  if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(s.n)+'</span>';}
+  document.getElementById('pName').textContent=s.n;
+  document.getElementById('pRole').textContent=s.role+' \u2022 '+(p.place||s.place);
+  document.getElementById('pCoins').textContent=S.coins[id]||0;
+  document.getElementById('pRank').textContent='#'+getRank(id);
+  var hist=S.history.filter(function(h){return h.r===id;});
+  document.getElementById('pAch').textContent=hist.length;
+  renderProfHist(id);
+  openModal('profOv');
+}
+function renderProfHist(id){
+  var hist=S.history.filter(function(h){return h.r===id;}).slice().reverse();
+  document.getElementById('pHistList').innerHTML=hist.length
+    ?hist.map(function(h){
+      var neg=h.coins<0;
+      var catLine=h.cat+(h.note?' &mdash; <span style="color:var(--ink-faint)">'+h.note+'</span>':'');
+      return '<div class="hist-row"><span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
+        +'<span class="hcat">'+catLine+'</span><span class="hdate">'+h.date+'</span>'
+        +(admin?'<button class="btn-edit-sm" onclick="openEdit(\''+h.id+'\','+id+')">Edit</button>'
+          +'<button class="btn-del-sm" onclick="delEntry(\''+h.id+'\','+id+')">Del</button>':'')+'</div>';
+    }).join(''):'<div class="empty-state">No records yet</div>';
+}
+
+/* ── AWARD / DEDUCT ── */
+function addCoins(){
+  var id=parseInt(document.getElementById('selStaff').value);var catId=document.getElementById('selCat').value;
+  var amt=parseInt(document.getElementById('coinAmt').value);var note=document.getElementById('coinNote').value;
+  if(!id||!catId||!amt||amt<1){showToast('Fill all fields!','error');return;}
+  var cat=S.cats.find(function(c){return c.id===catId;});var s=STAFF.find(function(x){return x.id===id;});
+  historyRef.add({r:id,name:s.n,cat:cat?cat.name:catId,coins:amt,note:note,addedBy:admin?admin.name:'',
+    date:dateStrFromInput('coinDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    showToast('Awarded '+amt+' coins to '+s.n,'success');
+  }).catch(function(e){console.error(e);showToast('Failed to save','error');});
+  document.getElementById('coinAmt').value='';document.getElementById('coinNote').value='';
+  document.getElementById('coinDate').value=todayISO();
+}
+function deductCoins(){
+  var id=parseInt(document.getElementById('dedStaff').value);
+  var reason=document.getElementById('dedReason').value.trim();
+  var amt=parseInt(document.getElementById('dedAmt').value);
+  var note=document.getElementById('dedNote').value.trim();
+  if(!id||!reason||!amt||amt<1){showToast('Fill all fields!','error');return;}
+  var s=STAFF.find(function(x){return x.id===id;});
+  historyRef.add({r:id,name:s.n,cat:'Deduction: '+reason,coins:-amt,note:note,addedBy:admin?admin.name:'',
+    date:dateStrFromInput('dedDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    showToast('Deducted '+amt+' coins from '+s.n,'error');
+  }).catch(function(e){console.error(e);showToast('Failed to save','error');});
+  document.getElementById('dedReason').value='';document.getElementById('dedAmt').value='';document.getElementById('dedNote').value='';
+  document.getElementById('dedDate').value=todayISO();
+}
+function openEdit(id,roll){
+  editId=id;editRoll=roll;var h=S.history.find(function(x){return x.id===id;});if(!h)return;
+  document.getElementById('editTitle').textContent='Edit \u2014 '+h.name;
+  document.getElementById('editCat').value=h.cat;document.getElementById('editCoins').value=h.coins;document.getElementById('editNote').value=h.note||'';
+  openModal('editOv');
+}
+function saveEdit(){
+  var cat=document.getElementById('editCat').value.trim();var coins=parseInt(document.getElementById('editCoins').value);
+  if(!cat||!coins||!editId)return;
+  historyRef.doc(editId).update({cat:cat,coins:coins,note:document.getElementById('editNote').value.trim()}).then(function(){
+    closeModal('editOv');
+    var pOv=document.getElementById('profOv');
+    if(editRoll>0&&pOv.classList.contains('open'))openProfile(editRoll);
+  }).catch(function(e){console.error(e);showToast('Edit failed','error');});
+}
+function delEntry(id,roll){
+  if(!confirm('Delete this record?'))return;
+  historyRef.doc(id).delete().then(function(){openProfile(roll);}).catch(function(e){console.error(e);showToast('Delete failed','error');});
+}
+
+/* ── PROFILE EDIT (admin) ── */
+function loadEP(){
+  var id=parseInt(document.getElementById('epStaff').value);
+  if(!id){document.getElementById('epFields').style.display='none';return;}
+  document.getElementById('epFields').style.display='block';
+  var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
+  var av=document.getElementById('epAvEl');
+  if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
+  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:22px">'+ini(s.n)+'</span>';}
+  document.getElementById('epRole').value=p.role||s.role;
+  document.getElementById('epPlace').value=p.place||s.place;
+}
+function uploadEpPic(input){
+  var id=parseInt(document.getElementById('epStaff').value);if(!id||!input.files[0])return;
+  compressImage(input.files[0],function(dataURL){savePic(id,dataURL);loadEP();showToast('Photo uploaded!','success');});
+}
+function saveProfile(){
+  var id=parseInt(document.getElementById('epStaff').value);if(!id)return;
+  if(!S.profiles[id])S.profiles[id]={};
+  S.profiles[id].role=document.getElementById('epRole').value.trim();
+  S.profiles[id].place=document.getElementById('epPlace').value.trim();
+  save();showToast('Profile saved!','success');
+}
+
+/* ── CATEGORIES ── */
+function addCat(){
+  var name=document.getElementById('newCatName').value.trim();var coins=parseInt(document.getElementById('newCatCoins').value);
+  if(!name||!coins){showToast('Fill category name and coins!','error');return;}
+  S.cats.push({id:'c'+Date.now(),name:name,coins:coins});
+  save();renderCatList();
+  document.getElementById('newCatName').value='';document.getElementById('newCatCoins').value='';
+  showToast('Category added!','success');
+}
+function delCat(id){
+  if(!confirm('Delete this category?'))return;
+  S.cats=S.cats.filter(function(c){return c.id!==id;});save();renderCatList();
+}
+function renderCatList(){
+  var el=document.getElementById('catList');if(!el)return;
+  el.innerHTML=S.cats.length?S.cats.map(function(c){
+    return '<div class="hist-row"><span class="hcat">'+c.name+'</span><span class="hbadge gold">'+c.coins+'</span>'
+      +'<button class="btn-del-sm" onclick="delCat(\''+c.id+'\')">Del</button></div>';
+  }).join(''):'<div class="empty-state">No categories yet \u2014 add one above</div>';
+}
+
+/* ── HISTORY (admin) ── */
+function renderHist(){
+  var el=document.getElementById('histList');if(!el)return;
+  var q=(document.getElementById('histSearch')||{value:''}).value.toLowerCase();
+  var all=S.history.slice().reverse();
+  var fl=q?all.filter(function(h){return h.name.toLowerCase().includes(q);}):all.slice(0,50);
+  el.innerHTML=fl.length?fl.map(function(h){
+    var neg=h.coins<0;
+    var catLine=h.cat+(h.note?' &mdash; <span style="color:var(--ink-faint)">'+h.note+'</span>':'');
+    return '<div class="hist-row"><span class="hbadge name">'+h.name+'</span>'
+      +'<span class="hcat">'+catLine+'</span><span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
+      +'<span class="hdate">'+h.date+'</span>'
+      +'<button class="btn-edit-sm" onclick="openEditH(\''+h.id+'\')">Edit</button>'
+      +'<button class="btn-del-sm" onclick="delH(\''+h.id+'\')">Del</button></div>';
+  }).join(''):'<div class="empty-state">No history yet</div>';
+}
+function openEditH(id){
+  var h=S.history.find(function(x){return x.id===id;});if(!h)return;
+  editId=id;editRoll=h.r;
+  document.getElementById('editTitle').textContent='Edit: '+h.name;
+  document.getElementById('editCat').value=h.cat;document.getElementById('editCoins').value=h.coins;document.getElementById('editNote').value=h.note||'';
+  openModal('editOv');
+}
+function delH(id){
+  if(!confirm('Delete?'))return;
+  historyRef.doc(id).delete().catch(function(e){console.error(e);showToast('Delete failed','error');});
+}
+
+/* ── REPORTS ── */
+function parseDMY(s){var p=s.split('/');return new Date(+p[2],+p[1]-1,+p[0]);}
+function repRange(){
+  var type=(document.getElementById('repType')||{value:'month'}).value;
+  var now=new Date();
+  if(type==='all')return{start:null,end:null,label:'All-time'};
+  if(type==='week'){
+    var d=new Date(now);var day=(d.getDay()+6)%7;d.setDate(d.getDate()-day+repOffset*7);
+    var start=new Date(d.getFullYear(),d.getMonth(),d.getDate());var end=new Date(start);end.setDate(end.getDate()+7);
+    return{start:start,end:end,label:'Week of '+start.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
+  }
+  if(type==='month'){
+    var m=now.getMonth()+repOffset;var y=now.getFullYear();
+    var start=new Date(y,m,1);var end=new Date(y,m+1,1);
+    return{start:start,end:end,label:start.toLocaleDateString('en-GB',{month:'long',year:'numeric'})};
+  }
+  var y2=now.getFullYear()+repOffset;
+  return{start:new Date(y2,0,1),end:new Date(y2+1,0,1),label:String(y2)};
+}
+function buildReportData(){
+  var r=repRange();
+  var hist=S.history.filter(function(h){if(!r.start)return true;var d=parseDMY(h.date);return d>=r.start&&d<r.end;});
+  var byStaff={};
+  hist.forEach(function(h){
+    if(!byStaff[h.r])byStaff[h.r]={count:0,coins:0,cats:[],catIdx:{}};
+    var b=byStaff[h.r];b.count++;b.coins+=h.coins;
+    if(b.catIdx[h.cat]===undefined){b.catIdx[h.cat]=b.cats.length;b.cats.push({name:h.cat,coins:h.coins});}
+    else{b.cats[b.catIdx[h.cat]].coins+=h.coins;}
+  });
+  var rows=STAFF.map(function(s){
+    var b=byStaff[s.id]||{count:0,coins:0,cats:[]};var p=S.profiles[s.id]||{};
+    return{id:s.id,name:s.n,role:p.role||s.role,count:b.count,coins:b.coins,cats:b.cats,pic:p.pic};
+  }).sort(function(a,b){return b.coins-a.coins;});
+  var totalCoins=rows.reduce(function(a,x){return a+x.coins;},0);
+  var active=rows.filter(function(x){return x.coins>0;}).length;
+  return{range:r,rows:rows,totalCoins:totalCoins,active:active,top:rows[0]};
+}
+function renderReports(){
+  var d=buildReportData();
+  document.getElementById('repLabel').textContent=d.range.label;
+  document.getElementById('repList').innerHTML=d.rows.filter(function(x){return x.coins>0;}).length
+    ?d.rows.filter(function(x){return x.coins>0;}).map(function(x,i){
+      return '<div class="hist-row"><span class="hbadge gold">#'+(i+1)+'</span><span class="hcat">'+x.name+'</span><span class="hbadge gold">+'+x.coins+'</span></div>';
+    }).join(''):'<div class="empty-state">No coins recorded in this period</div>';
+  var byCat={};
+  d.rows.forEach(function(x){x.cats.forEach(function(c){if(!byCat[c.name])byCat[c.name]={count:0,coins:0};byCat[c.name].count++;byCat[c.name].coins+=c.coins;});});
+  var catRows=Object.keys(byCat).map(function(k){return{cat:k,count:byCat[k].count,coins:byCat[k].coins};}).sort(function(a,b){return b.coins-a.coins;});
+  document.getElementById('repCatList').innerHTML=catRows.length?catRows.map(function(x){
+    return '<div class="hist-row"><span class="hcat" style="flex:1">'+x.cat+'</span><span class="hbadge name">x'+x.count+'</span><span class="hbadge gold">+'+x.coins+'</span></div>';
+  }).join(''):'<div class="empty-state">No activity in this period</div>';
+}
+function buildPrintHTML(d){
+  var r=d.range;
+  var typeVal=(document.getElementById('repType')||{value:'month'}).value;
+  var typeLabel=typeVal==='week'?'WEEKLY':typeVal==='month'?'MONTHLY':typeVal==='year'?'ANNUAL':'ALL-TIME';
+  var today=new Date();var genDate=today.getDate()+'/'+(today.getMonth()+1)+'/'+today.getFullYear();
+  var html='';
+  html+='<div class="pr-header"><div class="pr-acad">VALIYULLAHI THANGAL MEMORIAL DARUSSALAM ACADEMY (DSA)</div>';
+  html+='<div class="pr-sub">Velliyode, Kerala</div>';
+  html+='<div class="pr-title">STAFF RECOGNITION &mdash; '+typeLabel+' REPORT &mdash; '+r.label.toUpperCase()+'</div>';
+  html+='<div class="pr-sub" style="margin-top:6px">Generated: '+genDate+' &bull; Total Staff: '+STAFF.length+'</div></div>';
+  html+='<div class="pr-stats"><div class="pr-stat"><div class="v">'+d.totalCoins+'</div><div class="l">Total Coins</div></div>';
+  html+='<div class="pr-stat"><div class="v">'+d.active+'</div><div class="l">Active Staff</div></div>';
+  html+='<div class="pr-stat"><div class="v" style="font-size:12px">'+(d.top&&d.top.coins>0?d.top.name:'&mdash;')+'</div><div class="l">Top Staff</div></div></div>';
+  html+='<table class="pr-table"><thead><tr><th>Rank</th><th>Name</th><th>Role</th><th>Records</th><th>Coins</th></tr></thead><tbody>';
+  d.rows.forEach(function(x,i){html+='<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.role+'</td><td>'+x.count+'</td><td>'+x.coins+'</td></tr>';});
+  html+='</tbody></table>';
+  var withAch=d.rows.filter(function(x){return x.coins>0;});
+  if(withAch.length){
+    html+='<div style="margin-top:16px;font-size:13px;font-weight:800;color:#1C2B3A;border-bottom:2px solid #1C2B3A;padding-bottom:4px">RECOGNITION DETAILS</div>';
+    withAch.forEach(function(x){
+      html+='<div class="pr-ach"><h4>'+x.name+' &mdash; '+x.coins+' coins</h4>';
+      x.cats.forEach(function(c){html+='<span class="pr-chip">'+c.name+' +'+c.coins+'</span>';});
+      html+='</div>';
+    });
+  }
+  html+='<div style="text-align:center;margin-top:26px;font-size:11px"><div style="border-top:1px solid #333;width:200px;margin:0 auto;padding-top:5px;font-weight:700">Usthad Sharafuddeen Hudawi, Principal</div></div>';
+  html+='<div class="pr-foot">DSA Velliyode &bull; Valiyullahi Thangal Memorial Darussalam Academy &bull; Staff Recognition Board</div>';
+  return html;
+}
+function printReport(){
+  var data=buildReportData();
+  document.getElementById('printArea').innerHTML=buildPrintHTML(data);
+  setTimeout(function(){window.print();},80);
+}
+
+document.getElementById('coinDate').value=todayISO();
+document.getElementById('dedDate').value=todayISO();
+try{
+  if(db){load();loadHistory();initPicsListener();}
+}catch(e){console.error('Sync start failed',e);}
+renderBoard();
+</script>
+</body>
+</html>
