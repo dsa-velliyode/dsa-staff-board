@@ -292,13 +292,11 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 
       <div id="subtab-cats" style="display:none">
         <div class="card">
-          <label>New category name</label>
-          <input type="text" id="newCatName" placeholder="e.g. Punctuality Excellence">
-          <label>Default coins</label>
-          <input type="number" id="newCatCoins" min="1" placeholder="e.g. 5">
-          <button class="btn btn-primary" style="width:100%" onclick="addCat()">Add Category</button>
+          <label>New section name</label>
+          <input type="text" id="newSecName" placeholder="e.g. Special Duties">
+          <button class="btn btn-outline" style="width:100%" onclick="addSection()">+ Add Section</button>
         </div>
-        <div class="card"><div class="eyebrow">Existing categories</div><div id="catList"></div></div>
+        <div id="sectionsList"></div>
       </div>
 
       <div id="subtab-hist" style="display:none">
@@ -376,8 +374,42 @@ const STAFF=[
  {id:8,n:"Usthad Rabeeh Hudawi",place:"Aroor",role:"ILM Coordinator & S1 Class Teacher"}
 ];
 const ADMIN={name:"Usthad Sharafuddeen Hudawi",pw:"80241"};
+const DEFAULT_SECTIONS=[
+  {id:'sec_common',name:'Common Duties',cats:[
+    {id:'c_masjid',name:'Masjid Duty',coins:2},
+    {id:'c_dining',name:'Dining Hall Duty',coins:2},
+    {id:'c_friday',name:'Friday Duty',coins:2},
+    {id:'c_report',name:'Report Submission',coins:3}
+  ]},
+  {id:'sec_special',name:'Special Duties',cats:[
+    {id:'c_mtp',name:'MTP Board',coins:5},
+    {id:'c_sibaq',name:'Sibaq Board',coins:5}
+  ]},
+  {id:'sec_cce',name:'CCE Duties',cats:[
+    {id:'c_punct',name:'Punctuality of Assessments',coins:3}
+  ]},
+  {id:'sec_self',name:'Self Improvement',cats:[
+    {id:'c_grad',name:'Educational Graduation (B.Ed, K-TET, MA, etc.)',coins:15},
+    {id:'c_outer_off',name:'Outer Presentation \u2014 Offline',coins:6},
+    {id:'c_outer_on',name:'Outer Presentation \u2014 Online',coins:4},
+    {id:'c_inner_off',name:'Inner Presentation \u2014 Offline',coins:4},
+    {id:'c_inner_on',name:'Inner Presentation \u2014 Online',coins:3}
+  ]},
+  {id:'sec_survey',name:'Students Survey',cats:[
+    {id:'c_teaching',name:'Teaching Quality Rating',coins:5}
+  ]},
+  {id:'sec_ct',name:'Class Teacher Duties',cats:[
+    {id:'c_progress',name:'Class Study Progress',coins:4},
+    {id:'c_classpub',name:'Class Publication',coins:4},
+    {id:'c_union',name:'Class Union Leading',coins:5}
+  ]},
+  {id:'sec_mentor',name:'Mentor Duties',cats:[
+    {id:'c_caring',name:'Caring',coins:3},
+    {id:'c_mentorpub',name:'Publications',coins:4}
+  ]}
+];
 
-let S={cats:[],profiles:{},coins:{},history:[]};
+let S={catSections:[],profiles:{},coins:{},history:[]};
 let admin=null,editId=null,editRoll=-1,profRoll=-1,repOffset=0,fbReady=false;
 let PICS={};
 
@@ -442,11 +474,11 @@ function logout(){
 
 /* ── FIRESTORE SYNC ── */
 function stateForSync(){
-  var copy=JSON.parse(JSON.stringify({cats:S.cats,profiles:S.profiles}));
+  var copy=JSON.parse(JSON.stringify({catSections:S.catSections,profiles:S.profiles}));
   Object.keys(copy.profiles||{}).forEach(function(k){if(copy.profiles[k])delete copy.profiles[k].pic;});
   return copy;
 }
-function cacheLocal(){try{localStorage.setItem('sadad_staff_v1',JSON.stringify({cats:S.cats,profiles:S.profiles,history:S.history}));}catch(e){}}
+function cacheLocal(){try{localStorage.setItem('sadad_staff_v2',JSON.stringify({catSections:S.catSections,profiles:S.profiles,history:S.history}));}catch(e){}}
 function save(){
   cacheLocal();
   docRef.set(stateForSync()).catch(function(e){console.error('Save failed',e);});
@@ -465,8 +497,19 @@ function load(){
   docRef.onSnapshot({includeMetadataChanges:true},function(snap){
     if(snap.exists){
       var d=snap.data();
-      S.cats=d.cats||[];S.profiles=d.profiles||{};
+      S.profiles=d.profiles||{};
+      if(d.catSections&&d.catSections.length){
+        S.catSections=d.catSections;
+      }else if(d.cats&&d.cats.length){
+        // migrate old flat category list into a single section, once
+        S.catSections=[{id:'sec_legacy',name:'Categories',cats:d.cats}];
+        save();
+      }else{
+        S.catSections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+        save();
+      }
     }else{
+      S.catSections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
       docRef.set(stateForSync()).catch(function(e){console.error('Init failed',e);});
     }
     mergePics();fbReady=true;
@@ -544,9 +587,20 @@ function fillSelects(){
   });
   var sc=document.getElementById('selCat');
   if(sc){sc.innerHTML='<option value="">-- Select --</option>';
-    S.cats.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.coins+')';sc.appendChild(o);});}
+    (S.catSections||[]).forEach(function(sec){
+      var og=document.createElement('optgroup');og.label=sec.name;
+      (sec.cats||[]).forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.coins+')';og.appendChild(o);});
+      sc.appendChild(og);
+    });}
 }
-function autofill(){var id=document.getElementById('selCat').value;var cat=S.cats.find(function(c){return c.id===id;});if(cat)document.getElementById('coinAmt').value=cat.coins;}
+function findCat(id){
+  for(var i=0;i<(S.catSections||[]).length;i++){
+    var found=S.catSections[i].cats.find(function(c){return c.id===id;});
+    if(found)return found;
+  }
+  return null;
+}
+function autofill(){var id=document.getElementById('selCat').value;var cat=findCat(id);if(cat)document.getElementById('coinAmt').value=cat.coins;}
 
 /* ── BOARD ── */
 function renderBoard(){
@@ -636,7 +690,7 @@ function addCoins(){
   var id=parseInt(document.getElementById('selStaff').value);var catId=document.getElementById('selCat').value;
   var amt=parseInt(document.getElementById('coinAmt').value);var note=document.getElementById('coinNote').value;
   if(!id||!catId||!amt||amt<1){showToast('Fill all fields!','error');return;}
-  var cat=S.cats.find(function(c){return c.id===catId;});var s=STAFF.find(function(x){return x.id===id;});
+  var cat=findCat(catId);var s=STAFF.find(function(x){return x.id===id;});
   historyRef.add({r:id,name:s.n,cat:cat?cat.name:catId,coins:amt,note:note,addedBy:admin?admin.name:'',
     date:dateStrFromInput('coinDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
     showToast('Awarded '+amt+' coins to '+s.n,'success');
@@ -702,25 +756,52 @@ function saveProfile(){
   save();showToast('Profile saved!','success');
 }
 
-/* ── CATEGORIES ── */
-function addCat(){
-  var name=document.getElementById('newCatName').value.trim();var coins=parseInt(document.getElementById('newCatCoins').value);
-  if(!name||!coins){showToast('Fill category name and coins!','error');return;}
-  S.cats.push({id:'c'+Date.now(),name:name,coins:coins});
+/* ── CATEGORIES (grouped into sections) ── */
+function addSection(){
+  var name=document.getElementById('newSecName').value.trim();
+  if(!name){showToast('Enter a section name!','error');return;}
+  S.catSections.push({id:'sec'+Date.now(),name:name,cats:[]});
   save();renderCatList();
-  document.getElementById('newCatName').value='';document.getElementById('newCatCoins').value='';
+  document.getElementById('newSecName').value='';
+  showToast('Section added!','success');
+}
+function delSection(id){
+  if(!confirm('Delete this whole section and all its categories?'))return;
+  S.catSections=S.catSections.filter(function(s){return s.id!==id;});save();renderCatList();
+}
+function addCatToSection(secId){
+  var nameEl=document.getElementById('newCatName_'+secId);var coinsEl=document.getElementById('newCatCoins_'+secId);
+  var name=nameEl.value.trim();var coins=parseInt(coinsEl.value);
+  if(!name||!coins){showToast('Fill category name and coins!','error');return;}
+  var sec=S.catSections.find(function(s){return s.id===secId;});if(!sec)return;
+  sec.cats.push({id:'c'+Date.now(),name:name,coins:coins});
+  save();renderCatList();
   showToast('Category added!','success');
 }
-function delCat(id){
+function delCatFromSection(secId,catId){
   if(!confirm('Delete this category?'))return;
-  S.cats=S.cats.filter(function(c){return c.id!==id;});save();renderCatList();
+  var sec=S.catSections.find(function(s){return s.id===secId;});if(!sec)return;
+  sec.cats=sec.cats.filter(function(c){return c.id!==catId;});save();renderCatList();
 }
 function renderCatList(){
-  var el=document.getElementById('catList');if(!el)return;
-  el.innerHTML=S.cats.length?S.cats.map(function(c){
-    return '<div class="hist-row"><span class="hcat">'+c.name+'</span><span class="hbadge gold">'+c.coins+'</span>'
-      +'<button class="btn-del-sm" onclick="delCat(\''+c.id+'\')">Del</button></div>';
-  }).join(''):'<div class="empty-state">No categories yet \u2014 add one above</div>';
+  var el=document.getElementById('sectionsList');if(!el)return;
+  el.innerHTML=(S.catSections||[]).length?S.catSections.map(function(sec){
+    var rows=(sec.cats||[]).length?sec.cats.map(function(c){
+      return '<div class="hist-row"><span class="hcat">'+c.name+'</span><span class="hbadge gold">'+c.coins+'</span>'
+        +'<button class="btn-del-sm" onclick="delCatFromSection(\''+sec.id+'\',\''+c.id+'\')">Del</button></div>';
+    }).join(''):'<div class="empty-state">No categories in this section yet</div>';
+    return '<div class="card">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div class="eyebrow" style="margin-bottom:0">'+sec.name+'</div>'
+      +'<button class="btn-del-sm" onclick="delSection(\''+sec.id+'\')">Delete section</button></div>'
+      +rows
+      +'<div style="display:flex;gap:6px;margin-top:10px">'
+      +'<input type="text" id="newCatName_'+sec.id+'" placeholder="New category" style="margin-bottom:0;flex:2">'
+      +'<input type="number" id="newCatCoins_'+sec.id+'" placeholder="Coins" min="1" style="margin-bottom:0;flex:1">'
+      +'</div>'
+      +'<button class="btn btn-outline btn-sm" style="width:100%;margin-top:6px" onclick="addCatToSection(\''+sec.id+'\')">+ Add category to '+sec.name+'</button>'
+      +'</div>';
+  }).join(''):'<div class="empty-state">No sections yet \u2014 add one above</div>';
 }
 
 /* ── HISTORY (admin) ── */
