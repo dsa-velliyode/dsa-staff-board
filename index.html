@@ -116,6 +116,11 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 #pwErr{color:var(--red);font-size:12px;margin-top:6px;min-height:16px}
 
 .empty-state{text-align:center;padding:24px 10px;color:var(--ink-faint);font-size:12.5px}
+.notice-item{border-left:3px solid var(--gold);background:var(--gold-soft);border-radius:0 8px 8px 0;padding:9px 12px;margin-bottom:8px}
+.notice-item:last-child{margin-bottom:0}
+.notice-item .t{font-weight:700;font-size:13px;color:var(--ink)}
+.notice-item .m{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.notice-item .d{font-size:9.5px;color:var(--ink-faint);margin-top:3px}
 
 /* ── ADMIN BAR ── */
 .admin-bar{display:none;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;padding:9px 16px;font-size:12px}
@@ -181,6 +186,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
   .staff-row:hover{background:var(--paper)}
   .recog-card:hover,.nav-btn:hover{opacity:.85}
 }
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(115vh) rotate(560deg);opacity:0}}
 </style>
 </head>
 <body>
@@ -208,6 +214,10 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 
   <!-- BOARD -->
   <div class="section active" id="tab-board">
+    <div class="card" id="noticesCard" style="display:none">
+      <div class="eyebrow">&#128276; Notices</div>
+      <div id="noticesPublicList"></div>
+    </div>
     <div class="recog" id="recog"></div>
     <div class="card">
       <div class="eyebrow">Staff Rankings</div>
@@ -293,6 +303,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
         <button class="subtab" onclick="showSub('editProf',this)">Staff</button>
         <button class="subtab" onclick="showSub('cats',this)">Categories</button>
         <button class="subtab" onclick="showSub('hist',this)">History</button>
+        <button class="subtab" onclick="showSub('notices',this)">Notices</button>
       </div>
 
       <div id="subtab-addCoins">
@@ -307,6 +318,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
           <input type="text" id="coinNote" placeholder="e.g. Excellent guidance to students">
           <label>Date</label>
           <input type="date" id="coinDate">
+          <label>Attach report (optional, PDF or JPEG \u2014 for report submissions)</label>
+          <input type="file" id="coinAttach" accept=".pdf,image/*">
           <button class="btn btn-gold" style="width:100%;padding:11px" onclick="addCoins()">Award Coins</button>
         </div>
       </div>
@@ -339,6 +352,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
                 <input type="file" id="epPhotoIn" accept="image/*" style="display:none" onchange="uploadEpPic(this)">
               </label>
             </div>
+            <label>Full Name</label>
+            <input type="text" id="epName">
             <label>Role / Designation</label>
             <input type="text" id="epRole">
             <label>Place</label>
@@ -362,6 +377,17 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
           <input type="text" id="histSearch" placeholder="Search by name..." oninput="renderHist()">
           <div id="histList"></div>
         </div>
+      </div>
+
+      <div id="subtab-notices" style="display:none">
+        <div class="card">
+          <label>Notice title</label>
+          <input type="text" id="noticeTitle" placeholder="e.g. Staff Meeting Reminder">
+          <label>Message</label>
+          <input type="text" id="noticeMsg" placeholder="e.g. Monthly meeting on Friday at 4 PM">
+          <button class="btn btn-gold" style="width:100%" onclick="addNotice()">Post Notice</button>
+        </div>
+        <div class="card"><div class="eyebrow">Posted notices</div><div id="noticesAdminList"></div></div>
       </div>
     </div>
   </div>
@@ -474,11 +500,14 @@ let myChartObj=null,totalChartObj=null;
 let PICS={};
 
 function ini(n){var p=n.replace('Usthad ','').trim().split(' ');return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+function dName(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.name&&p.name.trim())||s.n;}
+function dRole(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.role&&p.role.trim())||s.role;}
+function dPlace(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.place&&p.place.trim())||s.place;}
 function avatarHTML(id,size,fs){
   size=size||42;fs=fs||13;
-  var p=S.profiles[id]||{};var s=STAFF.find(function(x){return x.id===id;});
+  var p=S.profiles[id]||{};
   if(p.pic)return '<img src="'+p.pic+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border)">';
-  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:'+fs+'px;flex-shrink:0;border:1.5px solid var(--border)">'+ini(s.n)+'</div>';
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:'+fs+'px;flex-shrink:0;border:1.5px solid var(--border)">'+ini(dName(id))+'</div>';
 }
 function sortedSTAFF(){return[...STAFF].sort(function(a,b){return(S.coins[b.id]||0)-(S.coins[a.id]||0);});}
 function getRank(id){var sorted=sortedSTAFF();return sorted.findIndex(function(s){return s.id===id;})+1;}
@@ -506,6 +535,7 @@ function showSub(t,btn){
   btn.classList.add('active');
   if(t==='cats')renderCatList();
   if(t==='hist')renderHist();
+  if(t==='notices')renderNoticesAdmin();
 }
 
 function checkPw(){
@@ -518,7 +548,7 @@ function checkPw(){
     });
     document.getElementById('pwIn').value='';document.getElementById('pwErr').textContent='';
     document.getElementById('adminBar').style.display='flex';
-    document.getElementById('adminName').textContent=match.n+(match.isAdmin?' (Principal)':'');
+    document.getElementById('adminName').textContent=dName(match.id)+(match.isAdmin?' (Principal)':'');
     document.getElementById('loginCard').style.display='none';
     document.getElementById('myPageCard').style.display='block';
     document.getElementById('adminPanel').style.display=admin?'block':'none';
@@ -648,7 +678,7 @@ function fillSelects(){
   ['selStaff','dedStaff','epStaff'].forEach(function(id){
     var el=document.getElementById(id);if(!el)return;
     el.innerHTML='<option value="">-- Select --</option>';
-    STAFF.forEach(function(s){var o=document.createElement('option');o.value=s.id;o.textContent=s.n;el.appendChild(o);});
+    STAFF.forEach(function(s){var o=document.createElement('option');o.value=s.id;o.textContent=dName(s.id);el.appendChild(o);});
   });
   var sc=document.getElementById('selCat');
   if(sc){sc.innerHTML='<option value="">-- Select --</option>';
@@ -674,7 +704,7 @@ function renderBoard(){
     return '<div class="staff-row" onclick="openProfile('+s.id+')">'
       +'<span class="rank-num">'+(i+1)+'</span>'
       +avatarHTML(s.id,42,13)
-      +'<div class="staff-info"><div class="staff-name">'+s.n+'</div><div class="staff-role">'+s.role+', '+s.place+'</div></div>'
+      +'<div class="staff-info"><div class="staff-name">'+dName(s.id)+'</div><div class="staff-role">'+(S.profiles[s.id]&&S.profiles[s.id].role||s.role)+', '+(S.profiles[s.id]&&S.profiles[s.id].place||s.place)+'</div></div>'
       +'<div class="staff-coins">'+(S.coins[s.id]||0)+'</div></div>';
   }).join('');
   renderRecog(sorted);
@@ -686,7 +716,7 @@ function renderTotalChart(sorted){
   sorted=sorted||sortedSTAFF();
   if(totalChartObj)totalChartObj.destroy();
   totalChartObj=new Chart(canvas.getContext('2d'),{type:'bar',data:{
-    labels:sorted.map(function(s){return s.n.replace('Usthad ','').split(' ')[0];}),
+    labels:sorted.map(function(s){return dName(s.id).replace('Usthad ','').split(' ')[0];}),
     datasets:[{label:'Coins',data:sorted.map(function(s){return S.coins[s.id]||0;}),backgroundColor:'#A6802E',borderRadius:4}]
   },options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 }
@@ -703,7 +733,7 @@ function renderAchDetails(sorted){
     });
     var chips=order.map(function(c){var neg=byCat[c]<0;return '<span class="hbadge '+(neg?'red':'gold')+'" style="margin:2px 3px 0 0">'+c+' '+(neg?'':'+')+byCat[c]+'</span>';}).join('');
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
-      +'<div style="font-weight:700;font-size:12.5px;margin-bottom:5px">'+s.n+' \u2014 '+(S.coins[s.id]||0)+' coins</div>'+chips+'</div>';
+      +'<div style="font-weight:700;font-size:12.5px;margin-bottom:5px">'+dName(s.id)+' \u2014 '+(S.coins[s.id]||0)+' coins</div>'+chips+'</div>';
   }).join('');
 }
 function renderRecog(sorted){
@@ -715,7 +745,7 @@ function renderRecog(sorted){
     var p=S.profiles[s.id]||{};
     var av=p.pic?'<img class="recog-av" src="'+p.pic+'">':'<div class="seal '+seals[i]+'">'+marks[i]+'</div>';
     return '<div class="recog-card'+(i===0?' first':'')+'" onclick="openProfile('+s.id+')">'+av
-      +'<div class="recog-name">'+s.n+'</div><div class="recog-role">'+s.role+'</div>'
+      +'<div class="recog-name">'+dName(s.id)+'</div><div class="recog-role">'+(S.profiles[s.id]&&S.profiles[s.id].role||s.role)+'</div>'
       +'<div class="recog-coins">'+(S.coins[s.id]||0)+'</div></div>';
   }).join('');
 }
@@ -733,7 +763,7 @@ const firebaseConfig={
   messagingSenderId:"628256626216",
   appId:"1:628256626216:web:56bbd3a78a242e1291871d"
 };
-var db,auth,docRef,historyRef,picsRef;
+var db,auth,docRef,historyRef,picsRef,attachRef,noticesRef;
 var ADMIN_AUTH_EMAIL='admin@sadad-secondbatch-dsa.app';
 var ADMIN_AUTH_PW='Sadad@SecondBatch2026';
 try{
@@ -743,6 +773,8 @@ try{
   docRef=db.collection('sadad_staff').doc('main');
   historyRef=db.collection('sadad_staff_history');
   picsRef=db.collection('sadad_staff_pics');
+  attachRef=db.collection('sadad_staff_attachments');
+  noticesRef=db.collection('sadad_staff_notices');
 }catch(e){
   console.error('Firebase failed to initialize',e);
   var b=document.getElementById('syncBadge');
@@ -754,8 +786,8 @@ function openProfile(id){
   profRoll=id;var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
   var av=document.getElementById('pAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
-  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(s.n)+'</span>';}
-  document.getElementById('pName').textContent=s.n;
+  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(dName(id))+'</span>';}
+  document.getElementById('pName').textContent=dName(id);
   document.getElementById('pRole').textContent=s.role+' \u2022 '+(p.place||s.place);
   document.getElementById('pCoins').textContent=S.coins[id]||0;
   document.getElementById('pRank').textContent='#'+getRank(id);
@@ -771,7 +803,7 @@ function renderProfHist(id){
       var neg=h.coins<0;
       var catLine=h.cat+(h.note?' &mdash; <span style="color:var(--ink-faint)">'+h.note+'</span>':'');
       return '<div class="hist-row"><span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
-        +'<span class="hcat">'+catLine+'</span><span class="hdate">'+h.date+'</span>'
+        +'<span class="hcat">'+catLine+'</span>'+attachChip(h.id)+'<span class="hdate">'+h.date+'</span>'
         +(admin?'<button class="btn-edit-sm" onclick="openEdit(\''+h.id+'\','+id+')">Edit</button>'
           +'<button class="btn-del-sm" onclick="delEntry(\''+h.id+'\','+id+')">Del</button>':'')+'</div>';
     }).join(''):'<div class="empty-state">No records yet</div>';
@@ -781,8 +813,8 @@ function renderMyPage(){
   var id=loggedInStaff.id;var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
   var av=document.getElementById('myAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
-  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(s.n)+'</span>';}
-  document.getElementById('myName').textContent=s.n;
+  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(dName(id))+'</span>';}
+  document.getElementById('myName').textContent=dName(s.id);
   document.getElementById('myRole').textContent=(p.role||s.role)+' \u2022 '+(p.place||s.place);
   document.getElementById('myCoins').textContent=S.coins[id]||0;
   document.getElementById('myRank').textContent='#'+getRank(id);
@@ -793,7 +825,7 @@ function renderMyPage(){
       var neg=h.coins<0;
       var catLine=h.cat+(h.note?' &mdash; <span style="color:var(--ink-faint)">'+h.note+'</span>':'');
       return '<div class="hist-row"><span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
-        +'<span class="hcat">'+catLine+'</span><span class="hdate">'+h.date+'</span></div>';
+        +'<span class="hcat">'+catLine+'</span>'+attachChip(h.id)+'<span class="hdate">'+h.date+'</span></div>';
     }).join(''):'<div class="empty-state">No records yet</div>';
   var byCat={};var order=[];
   hist.forEach(function(h){if(byCat[h.cat]===undefined){byCat[h.cat]=0;order.push(h.cat);}byCat[h.cat]+=h.coins;});
@@ -812,18 +844,136 @@ function uploadMyPic(input){
   compressImage(input.files[0],function(dataURL){savePic(loggedInStaff.id,dataURL);renderMyPage();renderBoard();showToast('Photo uploaded!','success');});
 }
 
+/* ── CELEBRATIONS ── */
+function confetti(count){
+  count=count||36;
+  var colors=['#A6802E','#2F6F62','#1C2B3A','#C9A961','#7FA394'];
+  var box=document.createElement('div');
+  box.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;overflow:hidden';
+  document.body.appendChild(box);
+  for(var i=0;i<count;i++){
+    var p=document.createElement('div');
+    var size=Math.random()*8+6;var startX=Math.random()*100;
+    var dur=(Math.random()*1.2+1.4).toFixed(2);var delay=(Math.random()*.3).toFixed(2);
+    var rot=Math.round(Math.random()*360);var color=colors[Math.floor(Math.random()*colors.length)];
+    var shape=Math.random()>.5?'50%':'2px';
+    p.style.cssText='position:absolute;left:'+startX+'%;top:-12px;width:'+size+'px;height:'+size+'px;background:'+color+';border-radius:'+shape+';opacity:.95;transform:rotate('+rot+'deg);animation:confettiFall '+dur+'s ease-in '+delay+'s forwards';
+    box.appendChild(p);
+  }
+  setTimeout(function(){box.remove();},2300);
+}
+var audioCtx=null;
+function playTone(freqs,dur,type){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    freqs.forEach(function(f,i){
+      var osc=audioCtx.createOscillator();var gain=audioCtx.createGain();
+      osc.type=type||'sine';osc.frequency.value=f;
+      osc.connect(gain);gain.connect(audioCtx.destination);
+      var start=audioCtx.currentTime+i*dur;
+      gain.gain.setValueAtTime(.0001,start);
+      gain.gain.exponentialRampToValueAtTime(.25,start+.02);
+      gain.gain.exponentialRampToValueAtTime(.0001,start+dur);
+      osc.start(start);osc.stop(start+dur+.02);
+    });
+  }catch(e){console.error('Audio failed',e);}
+}
+function playAwardSound(){playTone([523.25,659.25,783.99,1046.5],.13,'sine');}
+function playDeductSound(){playTone([392,293.66],.2,'sawtooth');}
+
+/* ── NOTICE BOARD ── */
+S.notices=[];
+function initNoticesListener(){
+  if(!noticesRef)return;
+  noticesRef.onSnapshot({includeMetadataChanges:true},function(snap){
+    var arr=[];
+    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,title:d.title,msg:d.msg,addedBy:d.addedBy||'',ts:d.ts});});
+    arr.sort(function(a,b){var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0;var tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0;return tb-ta;});
+    S.notices=arr;
+    renderNoticesPublic();
+    if(admin)renderNoticesAdmin();
+  },function(err){console.error('Notices sync error',err);});
+}
+function addNotice(){
+  var title=document.getElementById('noticeTitle').value.trim();
+  var msg=document.getElementById('noticeMsg').value.trim();
+  if(!title||!msg){showToast('Enter both title and message!','error');return;}
+  noticesRef.add({title:title,msg:msg,addedBy:admin?dName(admin.id):'',ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    showToast('Notice posted!','success');
+    document.getElementById('noticeTitle').value='';document.getElementById('noticeMsg').value='';
+  }).catch(function(e){console.error(e);showToast('Failed to post notice','error');});
+}
+function delNotice(id){
+  if(!confirm('Delete this notice?'))return;
+  noticesRef.doc(id).delete().catch(function(e){console.error(e);showToast('Delete failed','error');});
+}
+function renderNoticesAdmin(){
+  var el=document.getElementById('noticesAdminList');if(!el)return;
+  el.innerHTML=S.notices.length?S.notices.map(function(n){
+    return '<div class="notice-item"><div class="t">'+n.title+'</div><div class="m">'+n.msg+'</div>'
+      +'<div class="d">'+(n.addedBy?'by '+n.addedBy+' \u2022 ':'')+'<button class="btn-del-sm" onclick="delNotice(\''+n.id+'\')" style="margin-left:6px">Delete</button></div></div>';
+  }).join(''):'<div class="empty-state">No notices posted yet</div>';
+}
+function renderNoticesPublic(){
+  var card=document.getElementById('noticesCard');var el=document.getElementById('noticesPublicList');
+  if(!card||!el)return;
+  if(!S.notices.length){card.style.display='none';return;}
+  card.style.display='block';
+  el.innerHTML=S.notices.slice(0,5).map(function(n){
+    return '<div class="notice-item"><div class="t">'+n.title+'</div><div class="m">'+n.msg+'</div></div>';
+  }).join('');
+}
+var ATTACH={};
+function initAttachListener(){
+  if(!attachRef)return;
+  attachRef.onSnapshot(function(snap){
+    snap.docChanges().forEach(function(ch){
+      if(ch.type==='removed')ATTACH[ch.doc.id]=null;
+      else ATTACH[ch.doc.id]=ch.doc.data();
+    });
+    refreshCurrentView();
+  },function(err){console.error('Attachment sync error',err);});
+}
+function readAttachFile(file,cb){
+  if(file.type==='application/pdf'){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      if(e.target.result.length>950000){showToast('PDF too large (max ~700KB) \u2014 coins saved without attachment','error');cb(null);return;}
+      cb({data:e.target.result,type:'pdf',name:file.name});
+    };
+    reader.readAsDataURL(file);
+  }else if(file.type.indexOf('image/')===0){
+    compressImage(file,function(dataURL){cb({data:dataURL,type:'image',name:file.name});});
+  }else{
+    showToast('Only PDF or image files are supported','error');cb(null);
+  }
+}
+function attachChip(historyId){
+  var a=ATTACH[historyId];
+  if(!a)return '';
+  return ' <a href="'+a.data+'" download="'+a.name+'" onclick="event.stopPropagation()" class="hbadge name" style="text-decoration:none">&#128206; '+(a.type==='pdf'?'PDF':'Photo')+'</a>';
+}
 /* ── AWARD / DEDUCT ── */
 function addCoins(){
   var id=parseInt(document.getElementById('selStaff').value);var catId=document.getElementById('selCat').value;
   var amt=parseInt(document.getElementById('coinAmt').value);var note=document.getElementById('coinNote').value;
   if(!id||!catId||!amt||amt<1){showToast('Fill all fields!','error');return;}
   var cat=findCat(catId);var s=STAFF.find(function(x){return x.id===id;});
-  historyRef.add({r:id,name:s.n,cat:cat?cat.name:catId,coins:amt,note:note,addedBy:admin?admin.n:'',
-    date:dateStrFromInput('coinDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    showToast('Awarded '+amt+' coins to '+s.n,'success');
+  var fileInput=document.getElementById('coinAttach');var file=fileInput.files[0];
+  historyRef.add({r:id,name:dName(id),cat:cat?cat.name:catId,coins:amt,note:note,addedBy:admin?dName(admin.id):'',
+    date:dateStrFromInput('coinDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(docRef2){
+    showToast('Awarded '+amt+' coins to '+dName(id),'success');
+    playAwardSound();confetti(40);
+    if(file){
+      readAttachFile(file,function(att){
+        if(att)attachRef.doc(docRef2.id).set(att).catch(function(e){console.error('Attach save failed',e);});
+      });
+    }
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
   document.getElementById('coinAmt').value='';document.getElementById('coinNote').value='';
   document.getElementById('coinDate').value=todayISO();
+  fileInput.value='';
 }
 function deductCoins(){
   var id=parseInt(document.getElementById('dedStaff').value);
@@ -832,9 +982,10 @@ function deductCoins(){
   var note=document.getElementById('dedNote').value.trim();
   if(!id||!reason||!amt||amt<1){showToast('Fill all fields!','error');return;}
   var s=STAFF.find(function(x){return x.id===id;});
-  historyRef.add({r:id,name:s.n,cat:'Deduction: '+reason,coins:-amt,note:note,addedBy:admin?admin.n:'',
+  historyRef.add({r:id,name:dName(id),cat:'Deduction: '+reason,coins:-amt,note:note,addedBy:admin?dName(admin.id):'',
     date:dateStrFromInput('dedDate'),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    showToast('Deducted '+amt+' coins from '+s.n,'error');
+    showToast('Deducted '+amt+' coins from '+dName(id),'error');
+    playDeductSound();
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
   document.getElementById('dedReason').value='';document.getElementById('dedAmt').value='';document.getElementById('dedNote').value='';
   document.getElementById('dedDate').value=todayISO();
@@ -867,7 +1018,8 @@ function loadEP(){
   var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
   var av=document.getElementById('epAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
-  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:22px">'+ini(s.n)+'</span>';}
+  else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:22px">'+ini(dName(id))+'</span>';}
+  document.getElementById('epName').value=dName(id);
   document.getElementById('epRole').value=p.role||s.role;
   document.getElementById('epPlace').value=p.place||s.place;
 }
@@ -878,6 +1030,8 @@ function uploadEpPic(input){
 function saveProfile(){
   var id=parseInt(document.getElementById('epStaff').value);if(!id)return;
   if(!S.profiles[id])S.profiles[id]={};
+  var newName=document.getElementById('epName').value.trim();
+  if(newName)S.profiles[id].name=newName;
   S.profiles[id].role=document.getElementById('epRole').value.trim();
   S.profiles[id].place=document.getElementById('epPlace').value.trim();
   save();showToast('Profile saved!','success');
@@ -941,7 +1095,7 @@ function renderHist(){
     var neg=h.coins<0;
     var catLine=h.cat+(h.note?' &mdash; <span style="color:var(--ink-faint)">'+h.note+'</span>':'');
     return '<div class="hist-row"><span class="hbadge name">'+h.name+'</span>'
-      +'<span class="hcat">'+catLine+'</span><span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
+      +'<span class="hcat">'+catLine+'</span>'+attachChip(h.id)+'<span class="hbadge '+(neg?'red':'gold')+'">'+(neg?'':'+')+h.coins+'</span>'
       +'<span class="hdate">'+h.date+'</span>'
       +'<button class="btn-edit-sm" onclick="openEditH(\''+h.id+'\')">Edit</button>'
       +'<button class="btn-del-sm" onclick="delH(\''+h.id+'\')">Del</button></div>';
@@ -990,7 +1144,7 @@ function buildReportData(){
   });
   var rows=STAFF.map(function(s){
     var b=byStaff[s.id]||{count:0,coins:0,cats:[]};var p=S.profiles[s.id]||{};
-    return{id:s.id,name:s.n,role:p.role||s.role,count:b.count,coins:b.coins,cats:b.cats,pic:p.pic};
+    return{id:s.id,name:dName(s.id),role:p.role||s.role,count:b.count,coins:b.coins,cats:b.cats,pic:p.pic};
   }).sort(function(a,b){return b.coins-a.coins;});
   var totalCoins=rows.reduce(function(a,x){return a+x.coins;},0);
   var active=rows.filter(function(x){return x.coins>0;}).length;
@@ -1048,7 +1202,7 @@ function printReport(){
 document.getElementById('coinDate').value=todayISO();
 document.getElementById('dedDate').value=todayISO();
 try{
-  if(db){load();loadHistory();initPicsListener();}
+  if(db){load();loadHistory();initPicsListener();initAttachListener();initNoticesListener();}
 }catch(e){console.error('Sync start failed',e);}
 renderBoard();
 </script>
