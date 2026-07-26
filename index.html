@@ -293,25 +293,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
           <div class="pstat"><div class="pstat-val" id="myAch">0</div><div class="pstat-lbl">Records</div></div>
         </div>
       </div>
-      <div class="card" id="reportReminderCard" style="display:none">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:22px" id="reportStatusIcon">&#9203;</span>
-          <div>
-            <div style="font-weight:700;font-size:13px" id="reportStatusTitle">Pending</div>
-            <div style="font-size:11.5px;color:var(--ink-faint)" id="reportStatusSub"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="eyebrow" id="reportSectionLabel">Monthly Report Submission</div>
-        <label style="cursor:pointer">
-          <span class="btn btn-gold btn-sm">&#128206; Choose file (PDF or Image)</span>
-          <input type="file" id="myReportFile" accept=".pdf,image/*" style="display:none" onchange="submitMonthlyReport(this)">
-        </label>
-        <div id="reportFileName" style="font-size:11.5px;color:var(--ink-faint);margin-top:8px"></div>
-        <div class="eyebrow" style="margin-top:18px">Last 6 Months</div>
-        <div id="reportHistoryGrid"></div>
-      </div>
+      <div id="reportDutyCards"></div>
       <div class="card">
         <div class="eyebrow">My Achievements by Category</div>
         <canvas id="myChart" height="180"></canvas>
@@ -1007,6 +989,18 @@ function monthLabel(key){
   var p=key.split('-');var d=new Date(parseInt(p[0]),parseInt(p[1])-1,1);
   return d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
 }
+function monthOptionsHTML(){
+  var opts='';var d=new Date();
+  for(var i=0;i<12;i++){
+    var m=new Date(d.getFullYear(),d.getMonth()-i,1);var k=monthKey(m);
+    opts+='<option value="'+k+'"'+(i===0?' selected':'')+'>'+monthLabel(k)+'</option>';
+  }
+  return opts;
+}
+function getDuties(role){
+  return role.split('&').map(function(d){return d.trim();}).filter(Boolean);
+}
+function dutySlug(d){return d.toLowerCase().replace(/[^a-z0-9]+/g,'_');}
 function initReportsListener(){
   if(!reportsRef)return;
   reportsRef.onSnapshot(function(snap){
@@ -1018,16 +1012,18 @@ function initReportsListener(){
     if(admin&&subPanel&&subPanel.style.display!=='none')renderSubmissionsAdmin();
   },function(err){console.error('Reports sync error',err);});
 }
-function submitMonthlyReport(input){
+function submitMonthlyReport(input,duty,di){
   if(!loggedInStaff||!input.files[0])return;
-  var file=input.files[0];var id=loggedInStaff.id;var key=monthKey();
-  document.getElementById('reportFileName').textContent='Uploading\u2026';
+  var file=input.files[0];var id=loggedInStaff.id;var slug=dutySlug(duty);
+  var monthSel=document.getElementById('reportMonth_'+di);
+  var key=monthSel?monthSel.value:monthKey();
+  document.getElementById('reportFileName_'+di).textContent='Uploading\u2026';
   readAttachFile(file,function(att){
-    if(!att){document.getElementById('reportFileName').textContent='';return;}
-    reportsRef.doc(id+'_'+key).set({staffId:id,month:key,data:att.data,type:att.type,name:att.name,
+    if(!att){document.getElementById('reportFileName_'+di).textContent='';return;}
+    reportsRef.doc(id+'_'+slug+'_'+key).set({staffId:id,duty:duty,month:key,data:att.data,type:att.type,name:att.name,
       uploadedAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-      showToast('Report submitted for '+monthLabel(key)+'!','success');
-      document.getElementById('reportFileName').textContent='';
+      showToast(duty+' report saved for '+monthLabel(key)+'!','success');
+      document.getElementById('reportFileName_'+di).textContent='';
       input.value='';
     }).catch(function(e){console.error('Report save failed',e);showToast('Failed to save report','error');});
   });
@@ -1036,42 +1032,52 @@ function renderMyReportStatus(){
   if(!loggedInStaff)return;
   var id=loggedInStaff.id;var s=STAFF.find(function(x){return x.id===id;});
   var p=S.profiles[id]||{};var role=p.role||s.role;
-  var curKey=monthKey();var cur=S.reports[id+'_'+curKey];
-  document.getElementById('reportSectionLabel').textContent='Upload your '+role+' Monthly Report';
-  var card=document.getElementById('reportReminderCard');
-  var icon=document.getElementById('reportStatusIcon');var title=document.getElementById('reportStatusTitle');var sub=document.getElementById('reportStatusSub');
-  card.style.display='block';
-  if(cur){
-    icon.innerHTML='&#9989;';title.textContent=monthLabel(curKey)+' report submitted';title.style.color='var(--teal)';
-    sub.textContent=cur.name?('File: '+cur.name):'Completed';
-  }else{
-    icon.innerHTML='&#9203;';title.textContent=monthLabel(curKey)+' report pending';title.style.color='var(--red)';
-    sub.textContent='Please upload your monthly report below.';
-  }
-  var grid=document.getElementById('reportHistoryGrid');
-  var cells='';
-  for(var i=5;i>=0;i--){
-    var d=new Date();d.setMonth(d.getMonth()-i);
-    var k=monthKey(d);var got=S.reports[id+'_'+k];
-    cells+='<div class="rep-cell '+(got?'done':'pending')+'"><div class="ic">'+(got?'&#9989;':'&#9203;')+'</div>'
-      +d.toLocaleDateString('en-GB',{month:'short'})+'</div>';
-  }
-  grid.innerHTML=cells;
+  var duties=getDuties(role);var curKey=monthKey();
+  var html='';
+  duties.forEach(function(duty,di){
+    var slug=dutySlug(duty);var cur=S.reports[id+'_'+slug+'_'+curKey];
+    html+='<div class="card">';
+    html+='<div class="eyebrow">'+duty+' \u2014 Monthly Report</div>';
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:9px 12px;border-radius:8px;background:'+(cur?'var(--teal-soft)':'var(--red-soft)')+'">';
+    html+='<span style="font-size:18px">'+(cur?'&#9989;':'&#9203;')+'</span>';
+    html+='<div style="font-size:12px;font-weight:700;color:'+(cur?'var(--teal)':'var(--red)')+'">'+monthLabel(curKey)+' '+(cur?'submitted':'pending')+'</div></div>';
+    html+='<label style="font-size:11.5px;color:var(--ink-faint);display:block;margin-bottom:4px">Select month to upload / edit</label>';
+    html+='<select id="reportMonth_'+di+'">'+monthOptionsHTML()+'</select>';
+    html+='<label style="cursor:pointer">';
+    html+='<span class="btn btn-gold btn-sm">&#128206; Choose file (PDF or Image)</span>';
+    html+='<input type="file" id="reportFile_'+di+'" accept=".pdf,image/*" style="display:none" onchange="submitMonthlyReport(this,'+JSON.stringify(duty)+','+di+')">';
+    html+='</label>';
+    html+='<div id="reportFileName_'+di+'" style="font-size:11.5px;color:var(--ink-faint);margin-top:8px"></div>';
+    html+='<div class="eyebrow" style="margin-top:16px">Last 6 Months</div>';
+    html+='<div class="rep-grid">';
+    for(var i=5;i>=0;i--){
+      var d2=new Date();d2.setMonth(d2.getMonth()-i);
+      var k2=monthKey(d2);var got=S.reports[id+'_'+slug+'_'+k2];
+      html+='<div class="rep-cell '+(got?'done':'pending')+'"><div class="ic">'+(got?'&#9989;':'&#9203;')+'</div>'
+        +d2.toLocaleDateString('en-GB',{month:'short'})+'</div>';
+    }
+    html+='</div></div>';
+  });
+  document.getElementById('reportDutyCards').innerHTML=html;
 }
 function renderSubmissionsAdmin(){
   var el=document.getElementById('submissionsList');if(!el)return;
   var d=new Date();d.setMonth(d.getMonth()+subMonthOffset);
   var key=monthKey(d);
   document.getElementById('subMonthLabel').textContent=monthLabel(key);
-  el.innerHTML=STAFF.map(function(s){
-    var rep=S.reports[s.id+'_'+key];
-    var p=S.profiles[s.id]||{};
-    return '<div class="sub-row"><span style="font-size:18px">'+(rep?'&#9989;':'&#9203;')+'</span>'
-      +'<div style="flex:1"><div style="font-weight:700;font-size:12.5px">'+dName(s.id)+'</div>'
-      +'<div style="font-size:10.5px;color:var(--ink-faint)">'+(p.role||s.role)+'</div></div>'
-      +(rep?'<a href="'+rep.data+'" download="'+rep.name+'" class="hbadge name" style="text-decoration:none">&#128206; View</a>'
-        :'<span class="hbadge red">Pending</span>')+'</div>';
-  }).join('');
+  var html='';
+  STAFF.forEach(function(s){
+    var p=S.profiles[s.id]||{};var role=p.role||s.role;
+    getDuties(role).forEach(function(duty){
+      var slug=dutySlug(duty);var rep=S.reports[s.id+'_'+slug+'_'+key];
+      html+='<div class="sub-row"><span style="font-size:18px">'+(rep?'&#9989;':'&#9203;')+'</span>'
+        +'<div style="flex:1"><div style="font-weight:700;font-size:12.5px">'+dName(s.id)+'</div>'
+        +'<div style="font-size:10.5px;color:var(--ink-faint)">'+duty+'</div></div>'
+        +(rep?'<a href="'+rep.data+'" download="'+rep.name+'" class="hbadge name" style="text-decoration:none">&#128206; View</a>'
+          :'<span class="hbadge red">Pending</span>')+'</div>';
+    });
+  });
+  el.innerHTML=html;
 }
 /* ── AWARD / DEDUCT ── */
 function addCoins(){
