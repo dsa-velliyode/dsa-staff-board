@@ -962,14 +962,17 @@ function initAttachListener(){
   },function(err){console.error('Attachment sync error',err);});
 }
 function readAttachFile(file,cb){
-  if(file.type==='application/pdf'){
+  var isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
+  var isImage=file.type.indexOf('image/')===0||/\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(file.name);
+  if(isPdf){
     var reader=new FileReader();
     reader.onload=function(e){
-      if(e.target.result.length>950000){showToast('PDF too large (max ~700KB) \u2014 coins saved without attachment','error');cb(null);return;}
+      if(e.target.result.length>950000){showToast('PDF too large (max ~700KB) \u2014 please compress it and try again','error');cb(null);return;}
       cb({data:e.target.result,type:'pdf',name:file.name});
     };
+    reader.onerror=function(){showToast('Could not read that file \u2014 please try again','error');cb(null);};
     reader.readAsDataURL(file);
-  }else if(file.type.indexOf('image/')===0){
+  }else if(isImage){
     compressImage(file,function(dataURL){cb({data:dataURL,type:'image',name:file.name});});
   }else{
     showToast('Only PDF or image files are supported','error');cb(null);
@@ -1014,6 +1017,7 @@ function initReportsListener(){
 }
 function submitMonthlyReport(input,duty,di){
   if(!loggedInStaff||!input.files[0])return;
+  if(!reportsRef){showToast('Not connected \u2014 check your internet and try again','error');return;}
   var file=input.files[0];var id=loggedInStaff.id;var slug=dutySlug(duty);
   var monthSel=document.getElementById('reportMonth_'+di);
   var key=monthSel?monthSel.value:monthKey();
