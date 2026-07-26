@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
+<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Rz7whVCq6WqCWxG92yQxh4oip2StbW3ExxEG9Zvd9vG7w0AOqaf-nV2H4DtmWTzwRTAa7fbTCiVKiJdRKnRBOKUAMeu9FOvgLMe54bVCapbIZ_dXhpB7504ufakPlnKfhs3mVzyNdxOxSWII8B0ZaCG2UikUYPVyZo42oGJsGRHRYB4FBrwi8ku89ou0ohrOheFepfIFbBeYi3zfnoh8PFNMAub8wtwRAPAdvoQB1U28vBi-5XQOaLtk69CLa1it_SaVhAY_x49R-3N-n1oBKghuWZwBFMwMj52b-t8iaJI8W8U-bftVt-zLimbuuACYGDyheaLIthbsMZaBnkJV6hrHpsXsgWxGlR3iVelh4GC_L-Ij2kD8sSI3HfQMAYx1-MNqYur0BCUFUcbrVCo_wkAEBgQDzl2PFzW5iru-C-UBQbwwwvw8IM3zh3RaXwBJYjEheCnUk4PaET4b2eKyytOuohBuAN_Tl-IiPgkfFqGHSRUmPOWI_XMS2m1GKfwXe271ImSvaNSv2IJPdPMHwEHNXmXYZni0VSEh2IRJQ8OzCbap9Ecw6gpx7W2EyDxpZXsQF1zjquBfs976NR4TE9gDolf-uqMz4JnkmNfVHGEMB2v1RYs-6-ZqGVl5lDvJt_HBbLESu4CvIVeWQ5p4Jg" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9wcm9kLWNoYXQta2ltaS50b3MtY24tYmVpamluZy52b2xjZXMuY29tL2tpbWktZnMvb2tjL2x0YmI2Z2ZtcDUzZzQvb3V0cHV0L2luZGV4Lmh0bWw_WC1Ub3MtQWxnb3JpdGhtPVRPUzQtSE1BQy1TSEEyNTYmWC1Ub3MtQ3JlZGVudGlhbD1BS0xUWVRKbE5qZ3dNalkyWkRCa05ERmlZbUk1WVdOaVpEQmxabUZtWWpJelpUQSUyZjIwMjYwNzI2JTJmY24tYmVpamluZyUyZnRvcyUyZnJlcXVlc3QmWC1Ub3MtRGF0ZT0yMDI2MDcyNlQxNDQxNTNaJlgtVG9zLUV4cGlyZXM9NTE4NDAwJlgtVG9zLVNpZ25hdHVyZT1jOGJmMzlmZGY5M2NhNGU3YWZjZGZmYWNmMDBhNDIzZWEwNmI5MmViNGVkNGJmZmU2Mjc0ZDQ3ZDRiNmUyOWVhJlgtVG9zLVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LWRpc3Bvc2l0aW9uPWF0dGFjaG1lbnQlM2IlMjBmaWxlbmFtZSUyYSUzZFVURi04JTI3JTI3aW5kZXguaHRtbA"/><style>
 :root{
   --ink:#0F1B2A;
   --ink-soft:#3D4F63;
@@ -416,7 +416,6 @@ input[type="file"]{padding:8px}
 .card:nth-child(3){animation-delay:0.15s}
 .card:nth-child(4){animation-delay:0.2s}
 </style>
-<base target="_blank">
 </head>
 <body>
 <div class="wrap">
@@ -686,6 +685,7 @@ input[type="file"]{padding:8px}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -741,6 +741,12 @@ let admin=null,loggedInStaff=null,editId=null,editRoll=-1,profRoll=-1,repOffset=
 let myChartObj=null,totalChartObj=null;
 let PICS={};
 
+/* ── DEBUG HELPERS ── */
+function checkFirestoreHealth(){
+  if(!db){showToast('Firebase not initialized — check console','error');return false;}
+  if(!auth.currentUser){showToast('Not authenticated — sign in again','error');return false;}
+  return true;
+}
 function ini(n){var p=n.replace('Usthad ','').trim().split(' ');return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
 function dName(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.name&&p.name.trim())||s.n;}
 function dRole(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.role&&p.role.trim())||s.role;}
@@ -879,21 +885,84 @@ function savePic(id,dataURL){
   S.profiles[id].pic=dataURL;PICS[String(id)]=dataURL;
   picsRef.doc(String(id)).set({pic:dataURL}).catch(function(e){console.error(e);showToast('Photo upload failed','error');});
 }
-function compressImage(file,cb){
+function compressImage(file,cb,targetKB){
+  targetKB=targetKB||300;
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      var maxDim=420,w=img.width,h=img.height;
+      var maxDim=800,w=img.width,h=img.height;
       if(w>h){if(w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}}else{if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}}
       var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
-      cb(canvas.toDataURL('image/jpeg',.72));
+
+      var quality=0.85;
+      var attempt=0;
+      function tryCompress(){
+        var dataURL=canvas.toDataURL('image/jpeg',quality);
+        var sizeKB=Math.round(dataURL.length*0.75/1024);
+        if(sizeKB>targetKB && attempt<8 && quality>0.15){
+          quality-=0.1;attempt++;setTimeout(tryCompress,10);return;
+        }
+        cb(dataURL,sizeKB);
+      }
+      tryCompress();
     };
-    img.onerror=function(){cb(e.target.result);};
+    img.onerror=function(){cb(e.target.result,Math.round(e.target.result.length*0.75/1024));};
     img.src=e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+/* ── PDF COMPRESSION ── */
+async function compressPDF(file,cb,targetKB){
+  targetKB=targetKB||500;
+  try{
+    if(typeof PDFLib==='undefined'){cb(null);return;}
+    var arrayBuffer=await file.arrayBuffer();
+    var pdfDoc=await PDFLib.PDFDocument.load(arrayBuffer);
+    var pages=pdfDoc.getPages();
+
+    // Try to reduce embedded images by re-encoding them
+    var embeddedImages=pdfDoc.context.enumerateIndirectObjects();
+    for(var i=0;i<embeddedImages.length;i++){
+      var obj=embeddedImages[i][1];
+      if(obj&&obj.dict&&obj.dict.get&&obj.dict.get(PDFLib.PDFName.of('Subtype'))===PDFLib.PDFName.of('Image')){
+        // Images inside PDF are hard to recompress without full parsing; 
+        // pdf-lib doesn't expose easy image recompression.
+        // We'll do a simpler approach: if PDF is too big, warn user.
+      }
+    }
+
+    // Remove unused objects and save with compression
+    var saved=await pdfDoc.save({useObjectStreams:true,addDefaultPage:false,preserveExistingEncryption:false});
+    var blob=new Blob([saved],{type:'application/pdf'});
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var sizeKB=Math.round(e.target.result.length*0.75/1024);
+      cb({data:e.target.result,type:'pdf',name:file.name},sizeKB);
+    };
+    reader.readAsDataURL(blob);
+  }catch(err){
+    console.error('PDF compression failed',err);
+    // Fallback: return original if compression fails
+    var fr=new FileReader();
+    fr.onload=function(e){cb({data:e.target.result,type:'pdf',name:file.name},Math.round(e.target.result.length*0.75/1024));};
+    fr.readAsDataURL(file);
+  }
+}
+
+function autoCompressFile(file,cb){
+  var isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name);
+  var isImage=(file.type&&file.type.indexOf('image/')===0)||/\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(file.name);
+
+  if(isImage){
+    compressImage(file,function(dataURL,sizeKB){cb({data:dataURL,type:'image',name:file.name},sizeKB);},300);
+  }else if(isPdf){
+    compressPDF(file,function(result,sizeKB){cb(result,sizeKB);},500);
+  }else{
+    cb(null,0);
+  }
 }
 function updateSyncBadge(fromCache,pending,isError){
   var b=document.getElementById('syncBadge');if(!b)return;
@@ -1317,7 +1386,12 @@ function addCoins(){
     playAwardSound();confetti(40);
     if(file){
       readAttachFile(file,function(att){
-        if(att)attachRef.doc(docRef2.id).set(att).catch(function(e){console.error('Attach save failed',e);});
+        if(!att)return;
+        if(att.data.length>980000){showToast('Attachment too large for database — skipped','error');return;}
+        attachRef.doc(docRef2.id).set(att).catch(function(e){
+          console.error('Attach save failed',e);
+          showToast('Attachment failed to upload','error');
+        });
       });
     }
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
