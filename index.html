@@ -517,6 +517,15 @@ input[type="file"]{padding:8px}
         </div>
       </div>
       <div id="reportDutyCards"></div>
+      <div class="card" id="myDmCard" style="display:none">
+        <div class="eyebrow">Message the Principal</div>
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:0">Private \u2014 only you and the Principal can see this.</p>
+        <div id="myDmThread" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="dmInput" placeholder="Type a message..." style="flex:1;margin-bottom:0">
+          <button class="btn btn-gold btn-sm" onclick="sendDmToPrincipal()">Send</button>
+        </div>
+      </div>
       <div class="card">
         <div class="eyebrow">My Achievements by Category</div>
         <canvas id="myChart" height="180"></canvas>
@@ -536,6 +545,7 @@ input[type="file"]{padding:8px}
         <button class="subtab" onclick="showSub('cats',this)">Categories</button>
         <button class="subtab" onclick="showSub('hist',this)">History</button>
         <button class="subtab" onclick="showSub('notices',this)">Notices</button>
+        <button class="subtab" onclick="showSub('messages',this)">Messages</button>
         <button class="subtab" onclick="showSub('submissions',this)">Submissions</button>
       </div>
 
@@ -623,6 +633,19 @@ input[type="file"]{padding:8px}
         <div class="card"><div class="eyebrow">Posted notices</div><div id="noticesAdminList"></div></div>
       </div>
 
+      <div id="subtab-messages" style="display:none">
+        <p style="font-size:11.5px;color:var(--ink-faint);margin:0 0 10px">Private messages \u2014 each thread is visible only to that staff member and you.</p>
+        <div class="card">
+          <div class="eyebrow">Send a private message</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select id="dmToStaff" style="flex:1;min-width:150px;margin-bottom:0"></select>
+            <input type="text" id="dmNewMsg" placeholder="Type a private message..." style="flex:2;min-width:150px;margin-bottom:0">
+            <button class="btn btn-gold btn-sm" onclick="sendDmToStaff()">Send</button>
+          </div>
+        </div>
+        <div id="adminDmList"></div>
+      </div>
+
       <div id="subtab-submissions" style="display:none">
         <div class="card">
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
@@ -667,6 +690,13 @@ input[type="file"]{padding:8px}
       <div class="pstat"><div class="pstat-val" id="pCoins">0</div><div class="pstat-lbl">Coins</div></div>
       <div class="pstat"><div class="pstat-val" id="pRank">-</div><div class="pstat-lbl">Rank</div></div>
       <div class="pstat"><div class="pstat-val" id="pAch">0</div><div class="pstat-lbl">Records</div></div>
+    </div>
+    <div id="profQuickAward" style="display:none;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--paper)">
+      <label style="font-size:11px">Quick Award</label>
+      <div style="display:flex;gap:6px">
+        <select id="qaCat" style="flex:1;margin-bottom:0"></select>
+        <button class="btn btn-gold btn-sm" onclick="quickAward()">Award</button>
+      </div>
     </div>
     <div class="eyebrow">History</div>
     <div id="pHistList"></div>
@@ -770,7 +800,7 @@ function dbg(msg){
   var box=document.getElementById('debugBoxLog');
   if(box){box.textContent=(box.textContent==='Waiting for logs...'?'':box.textContent)+line+'\n';box.scrollTop=box.scrollHeight;}
 }
-function toggleDebug(){document.getElementById('debugOverlay').classList.toggle('open');}
+function toggleDebug(){var el=document.getElementById('debugOverlay');if(el)el.classList.toggle('open');}
 function directUploadTest(){
   var resultEl=document.getElementById('directTestResult');
   if(!resultEl)return;
@@ -902,6 +932,7 @@ function showSub(t,btn){
   if(t==='cats')renderCatList();
   if(t==='hist')renderHist();
   if(t==='notices')renderNoticesAdmin();
+  if(t==='messages'){fillDmToStaff();renderAdminDm();}
   if(t==='submissions')renderSubmissionsAdmin();
 }
 
@@ -910,18 +941,19 @@ function checkPw(){
   var match=STAFF.find(function(s){return s.pin===v;});
   if(match){
     loggedInStaff=match;admin=match.isAdmin?match:null;closeModal('pwOv');
-    auth.signInWithEmailAndPassword(ADMIN_AUTH_EMAIL,ADMIN_AUTH_PW).then(function(){
-    console.log('Admin auth success, uid:',auth.currentUser?auth.currentUser.uid:'none');
-      console.log('Admin auth success');
-    }).catch(function(e){
-      console.warn('Admin auth failed, trying anonymous',e);
-      auth.signInAnonymously().then(function(){
-        console.log('Anonymous auth success');
-      }).catch(function(e2){
-        console.error('Anonymous auth also failed',e2);
-        showToast('Cloud sync unavailable — check Firebase Auth settings','error');
+    if(match.isAdmin){
+      auth.signInWithEmailAndPassword(ADMIN_AUTH_EMAIL,ADMIN_AUTH_PW).then(function(){
+        console.log('Admin auth success, uid:',auth.currentUser?auth.currentUser.uid:'none');
+      }).catch(function(e){
+        console.warn('Admin auth failed, trying anonymous',e);
+        auth.signInAnonymously().then(function(){
+          console.log('Anonymous auth success');
+        }).catch(function(e2){
+          console.error('Anonymous auth also failed',e2);
+          showToast('Cloud sync unavailable — check Firebase Auth settings','error');
+        });
       });
-    });
+    }
     document.getElementById('pwIn').value='';document.getElementById('pwErr').textContent='';
     document.getElementById('adminBar').style.display='flex';
     document.getElementById('adminName').textContent=dName(match.id)+(match.isAdmin?' (Principal)':'');
@@ -1103,7 +1135,7 @@ function refreshCurrentView(){
   fillSelects();
   if(document.getElementById('tab-board').classList.contains('active'))renderBoard();
   if(document.getElementById('tab-reports').classList.contains('active'))renderReports();
-  if(admin){renderCatList();renderHist();}
+  if(admin){renderCatList();renderHist();renderAdminDm();}
   if(loggedInStaff)renderMyPage();
   var pOv=document.getElementById('profOv');
   if(pOv&&pOv.classList.contains('open')&&profRoll>0)openProfile(profRoll);
@@ -1205,7 +1237,7 @@ const firebaseConfig={
   messagingSenderId:"628256626216",
   appId:"1:628256626216:web:56bbd3a78a242e1291871d"
 };
-var db,auth,docRef,historyRef,picsRef,attachRef,noticesRef,reportsRef;
+var db,auth,docRef,historyRef,picsRef,attachRef,noticesRef,reportsRef,dmRef;
 var ADMIN_AUTH_EMAIL='admin@sadad-secondbatch-dsa.app';
 var ADMIN_AUTH_PW='Sadad@SecondBatch2026';
 try{
@@ -1219,6 +1251,7 @@ try{
   attachRef=db.collection('sadad_staff_attachments');
   noticesRef=db.collection('sadad_staff_notices');
   reportsRef=db.collection('sadad_staff_reports');
+  dmRef=db.collection('sadad_staff_dm');
 
   auth.onAuthStateChanged(function(user){
     if(user){
@@ -1244,7 +1277,7 @@ try{
 function startFirestoreSync(){
   console.log('Starting Firestore sync...');
   try{
-    load();loadHistory();initPicsListener();initAttachListener();initNoticesListener();initReportsListener();
+    load();loadHistory();initPicsListener();initAttachListener();initNoticesListener();initReportsListener();initDmListener();
   }catch(e){console.error('Sync start failed',e);}
 }
 
@@ -1260,8 +1293,29 @@ function openProfile(id){
   document.getElementById('pRank').textContent='#'+getRank(id);
   var hist=S.history.filter(function(h){return h.r===id;});
   document.getElementById('pAch').textContent=hist.length;
+  var qa=document.getElementById('profQuickAward');
+  if(qa){qa.style.display=admin?'block':'none';if(admin)fillQaCat();}
   renderProfHist(id);
   openModal('profOv');
+}
+function fillQaCat(){
+  var sc=document.getElementById('qaCat');if(!sc)return;
+  sc.innerHTML='';
+  (S.catSections||[]).forEach(function(sec){
+    var og=document.createElement('optgroup');og.label=sec.name;
+    (sec.cats||[]).forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.coins+')';og.appendChild(o);});
+    sc.appendChild(og);
+  });
+}
+function quickAward(){
+  if(!admin||profRoll<1)return;
+  var catId=document.getElementById('qaCat').value;var cat=findCat(catId);if(!cat)return;
+  var id=profRoll;var now=new Date();
+  historyRef.add({r:id,name:dName(id),cat:cat.name,coins:cat.coins,note:'',addedBy:dName(admin.id),
+    date:now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear(),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    showToast('Awarded '+cat.coins+' coins to '+dName(id)+'!','success');
+    playAwardSound();confetti(40);
+  }).catch(function(e){console.error(e);showToast('Failed to save','error');});
 }
 function renderProfHist(id){
   var hist=S.history.filter(function(h){return h.r===id;}).slice().reverse();
@@ -1283,6 +1337,8 @@ function renderMyPage(){
   dbg('reportsRef: '+(reportsRef?'OK':'MISSING'));
   if(!loggedInStaff)return;
   var id=loggedInStaff.id;var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
+  var dmCard=document.getElementById('myDmCard');
+  if(dmCard){dmCard.style.display=loggedInStaff.isAdmin?'none':'block';if(!loggedInStaff.isAdmin)renderMyDm();}
   var av=document.getElementById('myAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
   else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(dName(id))+'</span>';}
@@ -1395,6 +1451,79 @@ function renderNoticesPublic(){
   card.style.display='block';
   el.innerHTML=S.notices.slice(0,5).map(function(n){
     return '<div class="notice-item"><div class="t">'+n.title+'</div><div class="m">'+n.msg+'</div></div>';
+  }).join('');
+}
+
+/* ── PRIVATE MESSAGES (staff \u2194 Principal, one thread per staff member) ── */
+S.dm=[];
+function initDmListener(){
+  if(!dmRef)return;
+  dmRef.onSnapshot({includeMetadataChanges:true},function(snap){
+    var arr=[];
+    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,staffId:d.staffId,sender:d.sender,msg:d.msg,ts:d.ts});});
+    arr.sort(function(a,b){var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0;var tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0;return ta-tb;});
+    S.dm=arr;
+    if(loggedInStaff)renderMyDm();
+    if(admin)renderAdminDm();
+  },function(err){console.error('DM sync error',err);});
+}
+function sendDmToPrincipal(){
+  if(!loggedInStaff)return;
+  var input=document.getElementById('dmInput');var msg=input.value.trim();if(!msg)return;
+  dmRef.add({staffId:loggedInStaff.id,sender:'staff',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    input.value='';
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+}
+function sendDmReply(staffId){
+  var input=document.getElementById('dmReply_'+staffId);if(!input)return;
+  var msg=input.value.trim();if(!msg)return;
+  dmRef.add({staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    input.value='';
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+}
+function fillDmToStaff(){
+  var sel=document.getElementById('dmToStaff');if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML=STAFF.filter(function(s){return !s.isAdmin;}).map(function(s){return '<option value="'+s.id+'">'+dName(s.id)+'</option>';}).join('');
+  if(cur)sel.value=cur;
+}
+function sendDmToStaff(){
+  if(!admin)return;
+  var sel=document.getElementById('dmToStaff');var input=document.getElementById('dmNewMsg');
+  if(!sel||!input)return;
+  var staffId=parseInt(sel.value);var msg=input.value.trim();
+  if(!staffId||!msg)return;
+  dmRef.add({staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    input.value='';
+    showToast('Sent to '+dName(staffId),'success');
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+}
+function dmBubble(msg,mine){
+  return '<div style="display:flex;'+(mine?'justify-content:flex-end':'justify-content:flex-start')+';margin-bottom:6px">'
+    +'<div style="max-width:78%;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.4;background:'+(mine?'var(--gold-light)':'var(--paper)')+';border:1px solid var(--border)">'+msg+'</div></div>';
+}
+function renderMyDm(){
+  if(!loggedInStaff||loggedInStaff.isAdmin)return;
+  var el=document.getElementById('myDmThread');if(!el)return;
+  var thread=(S.dm||[]).filter(function(m){return m.staffId===loggedInStaff.id;});
+  el.innerHTML=thread.length?thread.map(function(m){return dmBubble(m.msg,m.sender==='staff');}).join('')
+    :'<div class="empty-state" style="font-size:11.5px">No messages yet \u2014 send a private note to the Principal below.</div>';
+  el.scrollTop=el.scrollHeight;
+}
+function renderAdminDm(){
+  var el=document.getElementById('adminDmList');if(!el)return;
+  var byStaff={};
+  (S.dm||[]).forEach(function(m){if(!byStaff[m.staffId])byStaff[m.staffId]=[];byStaff[m.staffId].push(m);});
+  var withMsgs=STAFF.filter(function(s){return !s.isAdmin&&byStaff[s.id]&&byStaff[s.id].length;});
+  if(!withMsgs.length){el.innerHTML='<div class="empty-state">No private messages from staff yet</div>';return;}
+  el.innerHTML=withMsgs.map(function(s){
+    var bubbles=byStaff[s.id].map(function(m){return dmBubble(m.msg,m.sender==='principal');}).join('');
+    return '<div class="card"><div class="eyebrow">'+dName(s.id)+'</div>'
+      +'<div style="max-height:200px;overflow-y:auto;margin-bottom:8px">'+bubbles+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<input type="text" id="dmReply_'+s.id+'" placeholder="Reply..." style="flex:1;margin-bottom:0">'
+      +'<button class="btn btn-gold btn-sm" onclick="sendDmReply('+s.id+')">Send</button>'
+      +'</div></div>';
   }).join('');
 }
 var ATTACH={};
@@ -1627,6 +1756,7 @@ function addCoins(){
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
   document.getElementById('coinAmt').value='';document.getElementById('coinNote').value='';
   document.getElementById('coinDate').value=todayISO();
+  document.getElementById('selStaff').value='';
   fileInput.value='';
 }
 function deductCoins(){
@@ -1643,6 +1773,7 @@ function deductCoins(){
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
   document.getElementById('dedReason').value='';document.getElementById('dedAmt').value='';document.getElementById('dedNote').value='';
   document.getElementById('dedDate').value=todayISO();
+  document.getElementById('dedStaff').value='';
 }
 function openEdit(id,roll){
   editId=id;editRoll=roll;var h=S.history.find(function(x){return x.id===id;});if(!h)return;
@@ -1652,7 +1783,7 @@ function openEdit(id,roll){
 }
 function saveEdit(){
   var cat=document.getElementById('editCat').value.trim();var coins=parseInt(document.getElementById('editCoins').value);
-  if(!cat||!coins||!editId)return;
+  if(!cat||isNaN(coins)||!editId)return;
   historyRef.doc(editId).update({cat:cat,coins:coins,note:document.getElementById('editNote').value.trim()}).then(function(){
     closeModal('editOv');
     var pOv=document.getElementById('profOv');
