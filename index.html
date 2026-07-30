@@ -521,8 +521,9 @@ input[type="file"]{padding:8px}
         <div class="eyebrow">Message the Principal</div>
         <p style="font-size:11px;color:var(--ink-faint);margin-top:0">Private \u2014 only you and the Principal can see this.</p>
         <div id="myDmThread" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;align-items:center">
           <input type="text" id="dmInput" placeholder="Type a message..." style="flex:1;margin-bottom:0">
+          <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmFile" accept=".pdf,image/*" style="display:none"></label>
           <button class="btn btn-gold btn-sm" onclick="sendDmToPrincipal()">Send</button>
         </div>
       </div>
@@ -637,9 +638,10 @@ input[type="file"]{padding:8px}
         <p style="font-size:11.5px;color:var(--ink-faint);margin:0 0 10px">Private messages \u2014 each thread is visible only to that staff member and you.</p>
         <div class="card">
           <div class="eyebrow">Send a private message</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
             <select id="dmToStaff" style="flex:1;min-width:150px;margin-bottom:0"></select>
             <input type="text" id="dmNewMsg" placeholder="Type a private message..." style="flex:2;min-width:150px;margin-bottom:0">
+            <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmNewFile" accept=".pdf,image/*" style="display:none"></label>
             <button class="btn btn-gold btn-sm" onclick="sendDmToStaff()">Send</button>
           </div>
         </div>
@@ -1460,26 +1462,44 @@ function initDmListener(){
   if(!dmRef)return;
   dmRef.onSnapshot({includeMetadataChanges:true},function(snap){
     var arr=[];
-    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,staffId:d.staffId,sender:d.sender,msg:d.msg,ts:d.ts});});
+    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,staffId:d.staffId,sender:d.sender,msg:d.msg,ts:d.ts,attData:d.attData,attType:d.attType,attName:d.attName});});
     arr.sort(function(a,b){var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0;var tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0;return ta-tb;});
     S.dm=arr;
     if(loggedInStaff)renderMyDm();
     if(admin)renderAdminDm();
   },function(err){console.error('DM sync error',err);});
 }
+function deleteDm(docId){
+  if(!confirm('Delete this message?'))return;
+  dmRef.doc(docId).delete().catch(function(e){console.error(e);showToast('Failed to delete message','error');});
+}
 function sendDmToPrincipal(){
   if(!loggedInStaff)return;
-  var input=document.getElementById('dmInput');var msg=input.value.trim();if(!msg)return;
-  dmRef.add({staffId:loggedInStaff.id,sender:'staff',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    input.value='';
-  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  var input=document.getElementById('dmInput');var fileInput=document.getElementById('dmFile');
+  var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
+  if(!msg&&!file)return;
+  function doSend(att){
+    var payload={staffId:loggedInStaff.id,sender:'staff',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+    dmRef.add(payload).then(function(){
+      input.value='';if(fileInput)fileInput.value='';
+    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  }
+  if(file){readAttachFile(file,doSend);}else{doSend(null);}
 }
 function sendDmReply(staffId){
-  var input=document.getElementById('dmReply_'+staffId);if(!input)return;
-  var msg=input.value.trim();if(!msg)return;
-  dmRef.add({staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    input.value='';
-  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  var input=document.getElementById('dmReply_'+staffId);var fileInput=document.getElementById('dmReplyFile_'+staffId);
+  if(!input)return;
+  var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
+  if(!msg&&!file)return;
+  function doSend(att){
+    var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+    dmRef.add(payload).then(function(){
+      input.value='';if(fileInput)fileInput.value='';
+    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  }
+  if(file){readAttachFile(file,doSend);}else{doSend(null);}
 }
 function fillDmToStaff(){
   var sel=document.getElementById('dmToStaff');if(!sel)return;
@@ -1489,24 +1509,43 @@ function fillDmToStaff(){
 }
 function sendDmToStaff(){
   if(!admin)return;
-  var sel=document.getElementById('dmToStaff');var input=document.getElementById('dmNewMsg');
+  var sel=document.getElementById('dmToStaff');var input=document.getElementById('dmNewMsg');var fileInput=document.getElementById('dmNewFile');
   if(!sel||!input)return;
-  var staffId=parseInt(sel.value);var msg=input.value.trim();
-  if(!staffId||!msg)return;
-  dmRef.add({staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    input.value='';
-    showToast('Sent to '+dName(staffId),'success');
-  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  var staffId=parseInt(sel.value);var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
+  if(!staffId||(!msg&&!file))return;
+  function doSend(att){
+    var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+    dmRef.add(payload).then(function(){
+      input.value='';if(fileInput)fileInput.value='';
+      showToast('Sent to '+dName(staffId),'success');
+    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
+  }
+  if(file){readAttachFile(file,doSend);}else{doSend(null);}
 }
-function dmBubble(msg,mine){
+function dmTimeStr(m){
+  if(!m.ts||!m.ts.toDate)return '';
+  var dt=m.ts.toDate();
+  return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' \u00b7 '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function dmBubble(m,mine){
+  var att='';
+  if(m.attData){
+    att='<div style="margin-top:4px"><a href="'+m.attData+'" download="'+(m.attName||'attachment')+'" onclick="event.stopPropagation()" style="font-size:11px;text-decoration:underline;color:inherit">&#128206; '+(m.attType==='pdf'?'PDF':'Photo')+'</a></div>';
+  }
+  var delBtn=mine?'<span onclick="deleteDm(\''+m.id+'\')" title="Delete" style="cursor:pointer;margin-left:8px;opacity:.55">&times;</span>':'';
   return '<div style="display:flex;'+(mine?'justify-content:flex-end':'justify-content:flex-start')+';margin-bottom:6px">'
-    +'<div style="max-width:78%;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.4;background:'+(mine?'var(--gold-light)':'var(--paper)')+';border:1px solid var(--border)">'+msg+'</div></div>';
+    +'<div style="max-width:78%;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.4;background:'+(mine?'var(--gold-light)':'var(--paper)')+';border:1px solid var(--border)">'
+    +(m.msg?('<div>'+m.msg+'</div>'):'')+att
+    +'<div style="display:flex;justify-content:flex-end;align-items:center;margin-top:3px">'
+    +'<span style="font-size:9.5px;color:var(--ink-faint)">'+dmTimeStr(m)+'</span>'+delBtn
+    +'</div></div></div>';
 }
 function renderMyDm(){
   if(!loggedInStaff||loggedInStaff.isAdmin)return;
   var el=document.getElementById('myDmThread');if(!el)return;
   var thread=(S.dm||[]).filter(function(m){return m.staffId===loggedInStaff.id;});
-  el.innerHTML=thread.length?thread.map(function(m){return dmBubble(m.msg,m.sender==='staff');}).join('')
+  el.innerHTML=thread.length?thread.map(function(m){return dmBubble(m,m.sender==='staff');}).join('')
     :'<div class="empty-state" style="font-size:11.5px">No messages yet \u2014 send a private note to the Principal below.</div>';
   el.scrollTop=el.scrollHeight;
 }
@@ -1517,11 +1556,12 @@ function renderAdminDm(){
   var withMsgs=STAFF.filter(function(s){return !s.isAdmin&&byStaff[s.id]&&byStaff[s.id].length;});
   if(!withMsgs.length){el.innerHTML='<div class="empty-state">No private messages from staff yet</div>';return;}
   el.innerHTML=withMsgs.map(function(s){
-    var bubbles=byStaff[s.id].map(function(m){return dmBubble(m.msg,m.sender==='principal');}).join('');
+    var bubbles=byStaff[s.id].map(function(m){return dmBubble(m,m.sender==='principal');}).join('');
     return '<div class="card"><div class="eyebrow">'+dName(s.id)+'</div>'
       +'<div style="max-height:200px;overflow-y:auto;margin-bottom:8px">'+bubbles+'</div>'
-      +'<div style="display:flex;gap:6px">'
+      +'<div style="display:flex;gap:6px;align-items:center">'
       +'<input type="text" id="dmReply_'+s.id+'" placeholder="Reply..." style="flex:1;margin-bottom:0">'
+      +'<label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmReplyFile_'+s.id+'" accept=".pdf,image/*" style="display:none"></label>'
       +'<button class="btn btn-gold btn-sm" onclick="sendDmReply('+s.id+')">Send</button>'
       +'</div></div>';
   }).join('');
@@ -1704,7 +1744,9 @@ function renderMyReportStatus(){
     for(var i=5;i>=0;i--){
       var d2=new Date();d2.setMonth(d2.getMonth()-i);
       var k2=monthKey(d2);var got=S.reports[id+'_'+slug+'_'+k2];
-      html+='<div class="rep-cell '+(got?'done':'pending')+'"><div class="ic">'+(got?'&#9989;':'&#9203;')+'</div>'
+      html+='<div class="rep-cell '+(got?'done':'pending')+'" style="position:relative">'
+        +(got?'<span onclick="event.stopPropagation();deleteReport(\''+id+'_'+slug+'_'+k2+'\')" title="Delete this report" style="position:absolute;top:2px;right:4px;font-size:13px;font-weight:700;color:var(--red);cursor:pointer">&times;</span>':'')
+        +'<div class="ic">'+(got?'&#9989;':'&#9203;')+'</div>'
         +d2.toLocaleDateString('en-GB',{month:'short'})+'</div>';
     }
     html+='</div></div>';
