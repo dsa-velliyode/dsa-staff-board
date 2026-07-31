@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>(function(){try{var t=localStorage.getItem('sadad_staff_theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Staff Board — DSA Velliyode</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,6 +30,28 @@
   --radius:14px;
   --radius-lg:20px;
   --transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  --nav-glass:rgba(255,255,255,0.85);
+  --gold-light-2:#FFF5E6;
+}
+:root[data-theme="dark"]{
+  --ink:#EDE8DE;
+  --ink-soft:#B0A99C;
+  --ink-faint:#7C766A;
+  --paper:#15120E;
+  --card:#221D17;
+  --border:#3A322A;
+  --gold:#E0B563;
+  --gold-light:#3D3220;
+  --gold-glow:rgba(224,181,99,0.22);
+  --teal:#5FBBA6;
+  --teal-soft:#1B3D36;
+  --red:#E28A8A;
+  --red-soft:#3D2020;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.2);
+  --shadow:0 4px 20px rgba(0,0,0,0.35),0 1px 3px rgba(0,0,0,0.25);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.45),0 4px 12px rgba(0,0,0,0.3);
+  --nav-glass:rgba(21,18,14,0.85);
+  --gold-light-2:#4A3D28;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
@@ -53,7 +76,7 @@ body::after{
 
 /* Letterhead */
 .letterhead{
-  background:linear-gradient(180deg,var(--card) 0%,#FDFCFA 100%);
+  background:linear-gradient(180deg,var(--card) 0%,var(--paper) 100%);
   border-bottom:1px solid var(--border);padding:28px 20px 20px;text-align:center;position:relative;overflow:hidden;
 }
 .letterhead::before{
@@ -61,7 +84,7 @@ body::after{
   background:linear-gradient(90deg,transparent,var(--gold),var(--teal),var(--gold),transparent);
 }
 .crest{
-  width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid var(--gold);
+  width:64px;height:64px;border-radius:50%;background:var(--card);border:2px solid var(--gold);
   display:flex;align-items:center;justify-content:center;margin:0 auto 10px;
   overflow:hidden;box-shadow:0 4px 16px rgba(184,137,46,0.25),0 0 0 6px var(--gold-glow);
   transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
@@ -81,7 +104,7 @@ body::after{
 
 /* Nav */
 .nav{
-  display:flex;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;background:var(--nav-glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;padding:0 8px;
 }
 .nav-btn{
@@ -169,7 +192,7 @@ body::after{
 .staff-role{font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .staff-coins{
   font-family:'Cormorant Garamond',serif;font-weight:700;font-size:20px;color:var(--gold);flex-shrink:0;
-  background:linear-gradient(135deg,var(--gold-light),#FFF5E6);padding:4px 12px;border-radius:20px;
+  background:linear-gradient(135deg,var(--gold-light),var(--gold-light-2));padding:4px 12px;border-radius:20px;
   border:1px solid rgba(184,137,46,0.2);transition:var(--transition);
 }
 .staff-row:hover .staff-coins{background:var(--gold);color:#fff;box-shadow:0 4px 12px rgba(184,137,46,0.3)}
@@ -193,7 +216,7 @@ body::after{
   transform:translate(-50%,-50%);transition:width 0.4s,height 0.4s;
 }
 .btn:active::after{width:200px;height:200px}
-.btn-primary{background:linear-gradient(135deg,var(--ink),#1E3A5F);color:#fff;box-shadow:0 4px 12px rgba(15,27,42,0.2)}
+.btn-primary{background:linear-gradient(135deg,#0F1B2A,#1E3A5F);color:#fff;box-shadow:0 4px 12px rgba(15,27,42,0.2)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(15,27,42,0.3)}
 .btn-gold{background:linear-gradient(135deg,var(--gold),#D4A84B);color:#fff;box-shadow:0 4px 16px rgba(184,137,46,0.3)}
 .btn-gold:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(184,137,46,0.4)}
@@ -205,7 +228,7 @@ body::after{
 label{font-size:11.5px;color:var(--ink-soft);display:block;margin-bottom:5px;font-weight:600}
 input,select{
   width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
-  font-size:14px;margin-bottom:14px;background:#fff;color:var(--ink);font-family:inherit;transition:var(--transition);
+  font-size:14px;margin-bottom:14px;background:var(--card);color:var(--ink);font-family:inherit;transition:var(--transition);
 }
 input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
 input[type="file"]{padding:8px}
@@ -311,7 +334,7 @@ input[type="file"]{padding:8px}
 /* Admin bar */
 .admin-bar{
   display:none;align-items:center;justify-content:space-between;
-  background:linear-gradient(135deg,var(--ink),#1E3A5F);color:#fff;padding:10px 18px;font-size:12.5px;
+  background:linear-gradient(135deg,#0F1B2A,#1E3A5F);color:#fff;padding:10px 18px;font-size:12.5px;
   position:sticky;top:0;z-index:50;backdrop-filter:blur(8px);
 }
 .admin-bar button{
@@ -335,7 +358,7 @@ input[type="file"]{padding:8px}
 .prof-role{font-size:13px;color:var(--ink-faint);text-align:center;font-weight:500}
 .pstats{display:flex;gap:10px;margin:18px 0}
 .pstat{
-  flex:1;text-align:center;background:linear-gradient(180deg,var(--paper),#fff);border:1.5px solid var(--border);
+  flex:1;text-align:center;background:linear-gradient(180deg,var(--paper),var(--card));border:1.5px solid var(--border);
   border-radius:var(--radius-sm);padding:14px 6px;transition:var(--transition);
 }
 .pstat:hover{border-color:var(--gold);transform:translateY(-2px)}
@@ -346,9 +369,8 @@ input[type="file"]{padding:8px}
 /* Print */
 #printArea{display:none}
 @media print{
-  body *{visibility:hidden}
-  #printArea,#printArea *{visibility:visible}
-  #printArea{display:block;position:absolute;top:0;left:0;width:100%;padding:16px;color:#0F1B2A}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;color:#0F1B2A}
   @page{margin:12mm}
 }
 .pr-header{text-align:center;border-bottom:3px double #0F1B2A;padding-bottom:12px;margin-bottom:16px}
@@ -373,7 +395,7 @@ input[type="file"]{padding:8px}
 
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);
-  background:linear-gradient(135deg,var(--ink),#1E3A5F);color:#fff;padding:13px 24px;
+  background:linear-gradient(135deg,#0F1B2A,#1E3A5F);color:#fff;padding:13px 24px;
   border-radius:12px;font-size:13.5px;font-weight:600;z-index:500;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
   box-shadow:0 8px 30px rgba(15,27,42,0.25);display:flex;align-items:center;gap:8px;
 }
@@ -421,6 +443,7 @@ input[type="file"]{padding:8px}
 <div class="wrap">
 
   <div class="letterhead">
+    <button id="themeToggle" onclick="toggleTheme()" title="Toggle day/night mode" style="position:absolute;top:14px;right:14px;z-index:2;background:var(--card);border:1.5px solid var(--border);border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)">&#127769;</button>
     <div class="crest"><img src="data:image/jpeg;base64,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" alt="DSA logo"></div>
     <div class="lh-name">VALIYULLAHI THANGAL MEMORIAL<br>DARUSSALAM ACADEMY (DSA)</div>
     <div class="lh-sub">Velliyode, Kerala</div>
@@ -523,9 +546,10 @@ input[type="file"]{padding:8px}
         <div id="myDmThread" style="max-height:220px;overflow-y:auto;margin-bottom:10px"></div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="text" id="dmInput" placeholder="Type a message..." style="flex:1;margin-bottom:0">
-          <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmFile" accept=".pdf,image/*" style="display:none"></label>
+          <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmFile" accept=".pdf,image/*" style="display:none" onchange="stageDmAttach('staff',this,'dmFileName')"></label>
           <button class="btn btn-gold btn-sm" onclick="sendDmToPrincipal()">Send</button>
         </div>
+        <div id="dmFileName" style="font-size:11px;color:var(--ink-faint);margin-top:4px"></div>
       </div>
       <div class="card">
         <div class="eyebrow">My Achievements by Category</div>
@@ -641,9 +665,10 @@ input[type="file"]{padding:8px}
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
             <select id="dmToStaff" style="flex:1;min-width:150px;margin-bottom:0"></select>
             <input type="text" id="dmNewMsg" placeholder="Type a private message..." style="flex:2;min-width:150px;margin-bottom:0">
-            <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmNewFile" accept=".pdf,image/*" style="display:none"></label>
+            <label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmNewFile" accept=".pdf,image/*" style="display:none" onchange="stageDmAttach('new',this,'dmNewFileName')"></label>
             <button class="btn btn-gold btn-sm" onclick="sendDmToStaff()">Send</button>
           </div>
+          <div id="dmNewFileName" style="font-size:11px;color:var(--ink-faint);margin-top:4px"></div>
         </div>
         <div id="adminDmList"></div>
       </div>
@@ -779,6 +804,25 @@ let S={catSections:[],profiles:{},coins:{},history:[]};
 let admin=null,loggedInStaff=null,editId=null,editRoll=-1,profRoll=-1,repOffset=0,fbReady=false;
 let myChartObj=null,totalChartObj=null;
 let PICS={};
+/* ── DAY / NIGHT THEME ── */
+function updateThemeIcon(){
+  var btn=document.getElementById('themeToggle');if(!btn)return;
+  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  btn.innerHTML=isDark?'&#9728;&#65039;':'&#127769;';
+  btn.title=isDark?'Switch to day mode':'Switch to night mode';
+}
+function toggleTheme(){
+  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){
+    document.documentElement.removeAttribute('data-theme');
+    try{localStorage.setItem('sadad_staff_theme','light');}catch(e){}
+  }else{
+    document.documentElement.setAttribute('data-theme','dark');
+    try{localStorage.setItem('sadad_staff_theme','dark');}catch(e){}
+  }
+  updateThemeIcon();
+}
+updateThemeIcon();
 
 /* ── DEBUG HELPERS ── */
 function copyRules(){
@@ -1473,33 +1517,48 @@ function deleteDm(docId){
   if(!confirm('Delete this message?'))return;
   dmRef.doc(docId).delete().catch(function(e){console.error(e);showToast('Failed to delete message','error');});
 }
+/* Staged attachments: read+compressed immediately on file selection and kept in
+   memory (keyed by composer context), so a background list re-render can never
+   wipe the selected file before Send is clicked. */
+var pendingDmAtt={};
+function stageDmAttach(ctx,input,nameElId){
+  var file=input.files&&input.files[0];
+  var nameEl=nameElId?document.getElementById(nameElId):null;
+  if(!file){delete pendingDmAtt[ctx];if(nameEl)nameEl.textContent='';return;}
+  if(nameEl)nameEl.textContent='Attaching '+file.name+'\u2026';
+  readAttachFile(file,function(att){
+    if(att){
+      pendingDmAtt[ctx]=att;
+      if(nameEl)nameEl.textContent='\u2713 '+att.name;
+    }else{
+      delete pendingDmAtt[ctx];
+      if(nameEl)nameEl.textContent='';
+    }
+  });
+}
 function sendDmToPrincipal(){
   if(!loggedInStaff)return;
-  var input=document.getElementById('dmInput');var fileInput=document.getElementById('dmFile');
-  var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
-  if(!msg&&!file)return;
-  function doSend(att){
-    var payload={staffId:loggedInStaff.id,sender:'staff',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
-    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
-    dmRef.add(payload).then(function(){
-      input.value='';if(fileInput)fileInput.value='';
-    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
-  }
-  if(file){readAttachFile(file,doSend);}else{doSend(null);}
+  var input=document.getElementById('dmInput');
+  var msg=input.value.trim();var att=pendingDmAtt['staff'];
+  if(!msg&&!att)return;
+  var payload={staffId:loggedInStaff.id,sender:'staff',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+  if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+  dmRef.add(payload).then(function(){
+    input.value='';delete pendingDmAtt['staff'];
+    var fi=document.getElementById('dmFile');if(fi)fi.value='';
+    var fn=document.getElementById('dmFileName');if(fn)fn.textContent='';
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
 }
 function sendDmReply(staffId){
-  var input=document.getElementById('dmReply_'+staffId);var fileInput=document.getElementById('dmReplyFile_'+staffId);
+  var input=document.getElementById('dmReply_'+staffId);
   if(!input)return;
-  var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
-  if(!msg&&!file)return;
-  function doSend(att){
-    var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
-    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
-    dmRef.add(payload).then(function(){
-      input.value='';if(fileInput)fileInput.value='';
-    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
-  }
-  if(file){readAttachFile(file,doSend);}else{doSend(null);}
+  var msg=input.value.trim();var att=pendingDmAtt['reply_'+staffId];
+  if(!msg&&!att)return;
+  var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+  if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+  dmRef.add(payload).then(function(){
+    input.value='';delete pendingDmAtt['reply_'+staffId];
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
 }
 function fillDmToStaff(){
   var sel=document.getElementById('dmToStaff');if(!sel)return;
@@ -1509,19 +1568,18 @@ function fillDmToStaff(){
 }
 function sendDmToStaff(){
   if(!admin)return;
-  var sel=document.getElementById('dmToStaff');var input=document.getElementById('dmNewMsg');var fileInput=document.getElementById('dmNewFile');
+  var sel=document.getElementById('dmToStaff');var input=document.getElementById('dmNewMsg');
   if(!sel||!input)return;
-  var staffId=parseInt(sel.value);var msg=input.value.trim();var file=fileInput&&fileInput.files[0];
-  if(!staffId||(!msg&&!file))return;
-  function doSend(att){
-    var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
-    if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
-    dmRef.add(payload).then(function(){
-      input.value='';if(fileInput)fileInput.value='';
-      showToast('Sent to '+dName(staffId),'success');
-    }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
-  }
-  if(file){readAttachFile(file,doSend);}else{doSend(null);}
+  var staffId=parseInt(sel.value);var msg=input.value.trim();var att=pendingDmAtt['new'];
+  if(!staffId||(!msg&&!att))return;
+  var payload={staffId:staffId,sender:'principal',msg:msg,ts:firebase.firestore.FieldValue.serverTimestamp()};
+  if(att){payload.attData=att.data;payload.attType=att.type;payload.attName=att.name;}
+  dmRef.add(payload).then(function(){
+    input.value='';delete pendingDmAtt['new'];
+    var fi=document.getElementById('dmNewFile');if(fi)fi.value='';
+    var fn=document.getElementById('dmNewFileName');if(fn)fn.textContent='';
+    showToast('Sent to '+dName(staffId),'success');
+  }).catch(function(e){console.error(e);showToast('Failed to send message','error');});
 }
 function dmTimeStr(m){
   if(!m.ts||!m.ts.toDate)return '';
@@ -1557,13 +1615,16 @@ function renderAdminDm(){
   if(!withMsgs.length){el.innerHTML='<div class="empty-state">No private messages from staff yet</div>';return;}
   el.innerHTML=withMsgs.map(function(s){
     var bubbles=byStaff[s.id].map(function(m){return dmBubble(m,m.sender==='principal');}).join('');
+    var stagedName=pendingDmAtt['reply_'+s.id]?('\u2713 '+pendingDmAtt['reply_'+s.id].name):'';
     return '<div class="card"><div class="eyebrow">'+dName(s.id)+'</div>'
       +'<div style="max-height:200px;overflow-y:auto;margin-bottom:8px">'+bubbles+'</div>'
       +'<div style="display:flex;gap:6px;align-items:center">'
       +'<input type="text" id="dmReply_'+s.id+'" placeholder="Reply..." style="flex:1;margin-bottom:0">'
-      +'<label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmReplyFile_'+s.id+'" accept=".pdf,image/*" style="display:none"></label>'
+      +'<label style="cursor:pointer;margin-bottom:0" title="Attach photo or PDF"><span class="btn btn-outline btn-sm" style="padding:6px 8px">&#128206;</span><input type="file" id="dmReplyFile_'+s.id+'" accept=".pdf,image/*" style="display:none" onchange="stageDmAttach(\'reply_'+s.id+'\',this,\'dmReplyFileName_'+s.id+'\')"></label>'
       +'<button class="btn btn-gold btn-sm" onclick="sendDmReply('+s.id+')">Send</button>'
-      +'</div></div>';
+      +'</div>'
+      +'<div id="dmReplyFileName_'+s.id+'" style="font-size:11px;color:var(--ink-faint);margin-top:4px">'+stagedName+'</div>'
+      +'</div>';
   }).join('');
 }
 var ATTACH={};
