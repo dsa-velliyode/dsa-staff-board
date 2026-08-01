@@ -506,6 +506,11 @@ input[type="file"]{padding:8px}
       <div id="repLabel" style="font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:4px"></div>
     </div>
     <div class="card">
+      <div class="eyebrow" id="trendTitle">Trend</div>
+      <canvas id="trendChart" height="180"></canvas>
+      <div class="empty-state" id="trendEmpty" style="display:none">No activity in this range yet</div>
+    </div>
+    <div class="card">
       <div class="eyebrow">Coins earned this period</div>
       <div id="repList"></div>
     </div>
@@ -1250,9 +1255,18 @@ function monthlyTopStaff(){
 function renderMonthSpotlight(){
   var el=document.getElementById('monthSpotlight');if(!el)return;
   var top=monthlyTopStaff();
-  if(!top){el.style.display='none';return;}
-  el.style.display='flex';
   var now=new Date();var monthLabel=now.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  el.style.display='flex';
+  el.style.cursor=top?'pointer':'default';
+  if(!top){
+    el.innerHTML='<div style="width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;border:2.5px dashed var(--border);color:var(--ink-faint)">&#127942;</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--ink-faint);text-transform:uppercase">&#127942; Staff of the Month &bull; '+monthLabel+'</div>'
+      +'<div style="font-size:12.5px;color:var(--ink-faint);margin-top:2px">No coins awarded yet this month &mdash; check back soon</div>'
+      +'</div>';
+    el.onclick=null;
+    return;
+  }
   var p=S.profiles[top.id]||{};var s=STAFF.find(function(x){return x.id===top.id;});
   var av=p.pic?'<img src="'+p.pic+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2.5px solid var(--gold);flex-shrink:0">'
     :'<div style="width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;border:2.5px solid var(--gold);box-shadow:0 0 0 4px var(--gold-glow);background:var(--card)">&#127942;</div>';
@@ -2039,22 +2053,25 @@ function delH(id){
 
 /* ── REPORTS ── */
 function parseDMY(s){var p=s.split('/');return new Date(+p[2],+p[1]-1,+p[0]);}
-function repRange(){
-  var type=(document.getElementById('repType')||{value:'month'}).value;
+function computeRange(type,offset){
   var now=new Date();
   if(type==='all')return{start:null,end:null,label:'All-time'};
   if(type==='week'){
-    var d=new Date(now);var day=(d.getDay()+6)%7;d.setDate(d.getDate()-day+repOffset*7);
+    var d=new Date(now);var day=(d.getDay()+6)%7;d.setDate(d.getDate()-day+offset*7);
     var start=new Date(d.getFullYear(),d.getMonth(),d.getDate());var end=new Date(start);end.setDate(end.getDate()+7);
-    return{start:start,end:end,label:'Week of '+start.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
+    return{start:start,end:end,label:'Week of '+start.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),shortLabel:start.toLocaleDateString('en-GB',{day:'numeric',month:'short'})};
   }
   if(type==='month'){
-    var m=now.getMonth()+repOffset;var y=now.getFullYear();
+    var m=now.getMonth()+offset;var y=now.getFullYear();
     var start=new Date(y,m,1);var end=new Date(y,m+1,1);
-    return{start:start,end:end,label:start.toLocaleDateString('en-GB',{month:'long',year:'numeric'})};
+    return{start:start,end:end,label:start.toLocaleDateString('en-GB',{month:'long',year:'numeric'}),shortLabel:start.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})};
   }
-  var y2=now.getFullYear()+repOffset;
-  return{start:new Date(y2,0,1),end:new Date(y2+1,0,1),label:String(y2)};
+  var y2=now.getFullYear()+offset;
+  return{start:new Date(y2,0,1),end:new Date(y2+1,0,1),label:String(y2),shortLabel:String(y2)};
+}
+function repRange(){
+  var type=(document.getElementById('repType')||{value:'month'}).value;
+  return computeRange(type,repOffset);
 }
 function buildReportData(){
   var r=repRange();
@@ -2087,6 +2104,55 @@ function renderReports(){
   document.getElementById('repCatList').innerHTML=catRows.length?catRows.map(function(x){
     return '<div class="hist-row"><span class="hcat" style="flex:1">'+x.cat+'</span><span class="hbadge name">x'+x.count+'</span><span class="hbadge gold">+'+x.coins+'</span></div>';
   }).join(''):'<div class="empty-state">No activity in this period</div>';
+  renderTrendChart();
+}
+var trendChartObj=null;
+var TREND_COLORS=['#B8892E','#2A7A6A','#B84545','#4A6FA5','#8B5FBF','#C77B3D','#5A8C3E','#A65D8C'];
+function renderTrendChart(){
+  var canvas=document.getElementById('trendChart');if(!canvas||typeof Chart==='undefined')return;
+  var wrap=canvas.parentElement;
+  var emptyEl=document.getElementById('trendEmpty');
+  var type=(document.getElementById('repType')||{value:'month'}).value;
+  var titleEl=document.getElementById('trendTitle');
+  if(type==='all'){
+    if(wrap)wrap.style.display='none';
+    if(trendChartObj){trendChartObj.destroy();trendChartObj=null;}
+    return;
+  }
+  if(wrap)wrap.style.display='block';
+  var N=type==='week'?8:(type==='month'?6:5);
+  var labels=[],periods=[];
+  for(var i=N-1;i>=0;i--){
+    var rr=computeRange(type,repOffset-i);
+    labels.push(rr.shortLabel);periods.push(rr);
+  }
+  var perStaff={};
+  STAFF.forEach(function(s){perStaff[s.id]=periods.map(function(){return 0;});});
+  periods.forEach(function(rr,pi){
+    S.history.forEach(function(h){
+      var dt=parseDMY(h.date);
+      if(dt>=rr.start&&dt<rr.end){
+        if(!perStaff[h.r])perStaff[h.r]=periods.map(function(){return 0;});
+        perStaff[h.r][pi]+=h.coins;
+      }
+    });
+  });
+  var activeStaff=STAFF.filter(function(s){return perStaff[s.id].some(function(v){return v!==0;});});
+  if(titleEl)titleEl.textContent=(type==='week'?'Last 8 Weeks':type==='month'?'Last 6 Months':'Last 5 Years')+' \u2014 Staff Progress';
+  if(trendChartObj){trendChartObj.destroy();trendChartObj=null;}
+  if(!activeStaff.length){
+    canvas.style.display='none';
+    if(emptyEl)emptyEl.style.display='block';
+    return;
+  }
+  canvas.style.display='block';
+  if(emptyEl)emptyEl.style.display='none';
+  var datasets=activeStaff.map(function(s,idx){
+    var color=TREND_COLORS[idx%TREND_COLORS.length];
+    return{label:dName(s.id),data:perStaff[s.id],borderColor:color,backgroundColor:color,fill:false,tension:0.3,pointRadius:3,pointBackgroundColor:color,pointHoverRadius:5,borderWidth:2};
+  });
+  trendChartObj=new Chart(canvas.getContext('2d'),{type:'line',data:{labels:labels,datasets:datasets},
+    options:{plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 }
 function buildPrintHTML(d){
   var r=d.range;
@@ -2119,21 +2185,46 @@ function buildPrintHTML(d){
 }
 function printReport(){
   var data=buildReportData();
-  document.getElementById('printArea').innerHTML=buildPrintHTML(data);
-  var done=false;
-  function go(){if(done)return;done=true;window.print();}
-  if(document.fonts&&document.fonts.ready){
-    document.fonts.ready.then(function(){setTimeout(go,50);}).catch(go);
-    setTimeout(go,1500);
-  }else{
-    setTimeout(go,80);
-  }
+  var bodyHtml=buildPrintHTML(data);
+  var doc='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Staff Recognition Report</title><style>'
+    +'*{box-sizing:border-box}'
+    +'body{font-family:Arial,Helvetica,sans-serif;color:#0F1B2A;margin:0;padding:16px;max-width:800px;margin:0 auto}'
+    +'.pr-header{text-align:center;border-bottom:3px double #0F1B2A;padding-bottom:12px;margin-bottom:16px}'
+    +'.pr-acad{font-size:20px;font-weight:800;color:#0F1B2A}'
+    +'.pr-sub{font-size:11.5px;color:#555;margin-top:3px}'
+    +'.pr-title{font-size:16px;font-weight:800;margin-top:12px;color:#B8892E}'
+    +'.pr-stats{display:flex;gap:12px;margin:16px 0}'
+    +'.pr-stat{flex:1;border:2px solid #B8892E;border-radius:12px;padding:12px;text-align:center;background:#FDFCFA}'
+    +'.pr-stat .v{font-size:22px;font-weight:800;color:#0F1B2A}'
+    +'.pr-stat .l{font-size:9.5px;text-transform:uppercase;color:#666;font-weight:700;letter-spacing:0.05em}'
+    +'.pr-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;table-layout:fixed}'
+    +'.pr-table th{background:#F5ECD8;color:#0F1B2A;padding:7px 6px;text-align:left;border-bottom:2.5px solid #0F1B2A;font-weight:800}'
+    +'.pr-table td{padding:6px 5px;border-bottom:1px solid #e0ddd5;color:#0F1B2A;overflow:hidden;word-wrap:break-word}'
+    +'.pr-table tr:nth-child(even) td{background:#FAF8F3}'
+    +'.pr-ach{border:1.5px solid #ddd;border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#FDFCFA}'
+    +'.pr-ach h4{margin:0 0 6px;font-size:12px;color:#0F1B2A;font-weight:700}'
+    +'.pr-achtable{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed}'
+    +'.pr-achtable td{padding:4px 6px;border-bottom:1px solid #eee;color:#333;overflow:hidden;word-wrap:break-word}'
+    +'.pr-achtable td:first-child{width:80%}'
+    +'.pr-achtable td:last-child{text-align:right;font-weight:700;color:#B8892E;white-space:nowrap;width:20%}'
+    +'.pr-foot{text-align:center;font-size:9.5px;color:#888;margin-top:18px;border-top:1px solid #ddd;padding-top:8px}'
+    +'@page{margin:12mm}'
+    +'@media print{body{padding:0}}'
+    +'</style></head><body>'
+    +bodyHtml
+    +'<script>window.onload=function(){var img=document.querySelector("img");function go(){setTimeout(function(){window.print();},80);}if(img&&!img.complete){img.addEventListener("load",go,{once:true});img.addEventListener("error",go,{once:true});setTimeout(go,800);}else{go();}};<\/script>'
+    +'</body></html>';
+  var win=window.open('','_blank');
+  if(!win){showToast('Please allow pop-ups for this site to print the report','error');return;}
+  win.document.open();
+  win.document.write(doc);
+  win.document.close();
 }
 
 document.getElementById('coinDate').value=todayISO();
 document.getElementById('dedDate').value=todayISO();
 renderBoard();
 </script>
-<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r8</div>
+<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r12</div>
 <button class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">&#8593;</button></body>
 </html>
