@@ -372,7 +372,7 @@ input[type="file"]{padding:8px}
 #printArea{display:none}
 @media print{
   body>*:not(#printArea){display:none!important}
-  #printArea{display:block!important;color:#0F1B2A}
+  #printArea{display:block!important;color:#0F1B2A;width:186mm;max-width:186mm;margin:0 auto}
   @page{margin:12mm}
 }
 .pr-header{text-align:center;border-bottom:3px double #0F1B2A;padding-bottom:12px;margin-bottom:16px}
@@ -2093,6 +2093,6 @@ document.getElementById('coinDate').value=todayISO();
 document.getElementById('dedDate').value=todayISO();
 renderBoard();
 </script>
-<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r3</div>
+<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r4</div>
 <button class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">&#8593;</button></body>
 </html>
