@@ -371,9 +371,10 @@ input[type="file"]{padding:8px}
 /* Print */
 #printArea{display:none}
 @media print{
-  body>*:not(#printArea){display:none!important}
-  #printArea{display:block!important;color:#0F1B2A;width:100%;box-sizing:border-box}
-  @page{size:A4;margin:12mm}
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;top:0;left:0;width:100%;padding:16px;color:#0F1B2A}
+  @page{margin:12mm}
 }
 .pr-header{text-align:center;border-bottom:3px double #0F1B2A;padding-bottom:12px;margin-bottom:16px}
 .pr-acad{font-size:20px;font-weight:800;color:#0F1B2A}
@@ -383,7 +384,7 @@ input[type="file"]{padding:8px}
 .pr-stat{flex:1;border:2px solid #B8892E;border-radius:12px;padding:12px;text-align:center;background:#FDFCFA}
 .pr-stat .v{font-size:22px;font-weight:800;color:#0F1B2A}
 .pr-stat .l{font-size:9.5px;text-transform:uppercase;color:#666;font-weight:700;letter-spacing:0.05em}
-.pr-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;box-sizing:border-box}
+.pr-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
 .pr-table th{background:linear-gradient(180deg,#F5ECD8,#FDFCFA);color:#0F1B2A;padding:7px 6px;text-align:left;border-bottom:2.5px solid #0F1B2A;font-weight:800}
 .pr-table td{padding:6px 5px;border-bottom:1px solid #e0ddd5;color:#0F1B2A}
 .pr-table tr:nth-child(even) td{background:#FAF8F3}
@@ -2085,17 +2086,8 @@ function buildPrintHTML(d){
 }
 function printReport(){
   var data=buildReportData();
-  var area=document.getElementById('printArea');
-  area.innerHTML=buildPrintHTML(data);
-  var img=area.querySelector('img');
-  function go(){setTimeout(function(){window.print();},50);}
-  if(img&&!img.complete){
-    img.addEventListener('load',go,{once:true});
-    img.addEventListener('error',go,{once:true});
-    setTimeout(go,600);
-  }else{
-    go();
-  }
+  document.getElementById('printArea').innerHTML=buildPrintHTML(data);
+  setTimeout(function(){window.print();},80);
 }
 
 document.getElementById('coinDate').value=todayISO();
