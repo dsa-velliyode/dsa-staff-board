@@ -137,8 +137,9 @@ body::after{
 .card:hover::before{opacity:1}
 .eyebrow{
   font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold);
-  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;min-width:0;
 }
+.eyebrow > *:last-child,.eyebrow{overflow-wrap:break-word;word-break:break-word}
 .eyebrow::before{
   content:'';display:inline-block;width:4px;height:16px;background:linear-gradient(180deg,var(--gold),var(--teal));border-radius:2px;
 }
@@ -244,7 +245,7 @@ input[type="file"]{padding:8px}
   flex:1;min-width:28%;padding:9px 6px;text-align:center;font-size:11.5px;font-weight:600;
   color:var(--ink-faint);background:none;border:none;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);
 }
-.subtab:hover{color:var(--ink-soft);background:rgba(255,255,255,0.5)}
+.subtab:hover{color:var(--ink-soft);background:var(--hover-tint)}
 .subtab.active{background:var(--card);color:var(--gold);box-shadow:var(--shadow)}
 
 /* History rows */
@@ -328,9 +329,9 @@ input[type="file"]{padding:8px}
 .rep-cell.done{background:var(--teal-soft);border-color:var(--teal);color:var(--teal)}
 .rep-cell.pending{background:var(--red-soft);border-color:var(--red);color:var(--red)}
 .sub-row{
-  display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);transition:var(--transition);
+  display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);transition:var(--transition);min-width:0;
 }
-.sub-row:hover{padding-left:8px;background:rgba(232,243,240,0.3);border-radius:6px;margin:0 -8px;padding:10px 8px}
+.sub-row:hover{padding-left:8px;background:var(--hover-tint);border-radius:6px;margin:0 -8px;padding:10px 8px}
 .sub-row:last-child{border-bottom:none}
 
 /* Admin bar */
@@ -1812,7 +1813,7 @@ function renderSubmissionsAdmin(){
     getDuties(role).forEach(function(duty){
       var slug=dutySlug(duty);var rep=S.reports[s.id+'_'+slug+'_'+key];
       html+='<div class="sub-row"><span style="font-size:18px">'+(rep?'&#9989;':'&#9203;')+'</span>'
-        +'<div style="flex:1"><div style="font-weight:700;font-size:12.5px">'+dName(s.id)+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12.5px">'+dName(s.id)+'</div>'
         +'<div style="font-size:10.5px;color:var(--ink-faint)">'+duty+'</div></div>'
         +(rep?'<a href="'+rep.data+'" download="'+rep.name+'" class="hbadge name" style="text-decoration:none">&#128206; View</a>'
           :'<span class="hbadge red">Pending</span>')
