@@ -855,123 +855,6 @@ function toggleTheme(){
 }
 updateThemeIcon();
 
-/* ── DEBUG HELPERS ── */
-function copyRules(){
-  var el=document.getElementById('rulesCode');
-  var range=document.createRange();range.selectNode(el);
-  window.getSelection().removeAllRanges();window.getSelection().addRange(range);
-  document.execCommand('copy');window.getSelection().removeAllRanges();
-  showToast('Rules copied! Paste in Firebase Console','success');
-}
-function checkFirestoreHealth(){
-  if(!db){showToast('Firebase not initialized — check console','error');return false;}
-  if(!auth.currentUser){showToast('Not authenticated — sign in again','error');return false;}
-  return true;
-}
-function dbg(msg){
-  console.log(msg);
-  var ts=new Date().toLocaleTimeString();
-  var line='['+ts+'] '+msg;
-  var el=document.getElementById('debugLog');
-  if(el){el.innerHTML+='> '+msg+'<br>';el.scrollTop=el.scrollHeight;}
-  var box=document.getElementById('debugBoxLog');
-  if(box){box.textContent=(box.textContent==='Waiting for logs...'?'':box.textContent)+line+'\n';box.scrollTop=box.scrollHeight;}
-}
-function toggleDebug(){var el=document.getElementById('debugOverlay');if(el)el.classList.toggle('open');}
-function directUploadTest(){
-  var resultEl=document.getElementById('directTestResult');
-  if(!resultEl)return;
-  resultEl.innerHTML='<span style="color:var(--teal)">Testing...</span>';
-
-  if(!loggedInStaff){resultEl.innerHTML='<span style="color:var(--red)">Not signed in</span>';return;}
-  if(!db){resultEl.innerHTML='<span style="color:var(--red)">Firebase not loaded</span>';return;}
-  if(!auth){resultEl.innerHTML='<span style="color:var(--red)">Auth not loaded</span>';return;}
-  if(!auth.currentUser){resultEl.innerHTML='<span style="color:var(--red)">Not authenticated</span>';return;}
-  if(!reportsRef){resultEl.innerHTML='<span style="color:var(--red)">reportsRef missing</span>';return;}
-
-  var testId='_direct_test_'+loggedInStaff.id+'_'+Date.now();
-  reportsRef.doc(testId).set({
-    staffId:loggedInStaff.id,
-    duty:'DirectTest',
-    month:monthKey(),
-    data:'data:text/plain;base64,TEST',
-    type:'test',
-    name:'direct-test.txt',
-    uploadedAt:firebase.firestore.FieldValue.serverTimestamp()
-  }).then(function(){
-    resultEl.innerHTML='<span style="color:var(--teal)">&#9989; SUCCESS! Firestore write works. Upload should work too.</span>';
-    reportsRef.doc(testId).delete().catch(function(e){});
-  }).catch(function(e){
-    var msg=e.code||e.message||'Unknown error';
-    if(e.code==='permission-denied') msg='Permission denied — Firestore rules block writes';
-    else if(e.code==='unauthenticated') msg='Not authenticated';
-    resultEl.innerHTML='<span style="color:var(--red)">&#10060; FAILED: '+msg+'</span>';
-  });
-}
-
-function simpleUploadTest(di){
-  dbg('=== SIMPLE TEST ===');
-  if(!loggedInStaff){dbg('ERROR: not logged in');showToast('Sign in first','error');return;}
-  if(!reportsRef){dbg('ERROR: no reportsRef');showToast('Not connected','error');return;}
-  if(!auth.currentUser){dbg('ERROR: no auth user');showToast('Auth not ready','error');return;}
-  var dutyEl=document.getElementById('reportFile_'+di);
-  var duty=dutyEl?dutyEl.getAttribute('data-duty'):'test';
-  var monthSel=document.getElementById('reportMonth_'+di);
-  var key=monthSel?monthSel.value:monthKey();
-  var docId=loggedInStaff.id+'_'+dutySlug(duty)+'_'+key+'_test';
-  var statusEl=document.getElementById('reportFileName_'+di);
-  statusEl.innerHTML='<span style="color:var(--teal)">Testing write...</span>';
-  dbg('Writing test doc: '+docId);
-  reportsRef.doc(docId).set({
-    staffId:loggedInStaff.id,duty:duty,month:key,data:'data:text/plain;base64,SGVsbG8gV29ybGQ=',type:'test',name:'test.txt',
-    uploadedAt:firebase.firestore.FieldValue.serverTimestamp()
-  }).then(function(){
-    dbg('SIMPLE TEST SUCCESS!');
-    statusEl.innerHTML='<span style="color:var(--teal)">&#9989; Test write OK — uploads work!</span>';
-    showToast('Test upload successful!','success');
-    reportsRef.doc(docId).delete().catch(function(e){});
-  }).catch(function(e){
-    dbg('SIMPLE TEST FAILED: '+e.code+' | '+e.message);
-    statusEl.innerHTML='<span style="color:var(--red)">&#10060; '+e.code+'</span>';
-    if(e.code==='permission-denied'){
-      showToast('Permission denied — update Firestore rules!','error');
-    }else{
-      showToast('Test failed: '+e.code,'error');
-    }
-  });
-}
-function testConnection(){
-  dbg('=== TEST START ===');
-  if(typeof firebase==='undefined'){dbg('ERROR: firebase library not loaded');showToast('Firebase library not loaded','error');return;}
-  if(!db){dbg('ERROR: db not initialized');showToast('Firebase not initialized','error');return;}
-  dbg('Firebase OK');
-  if(!auth){dbg('ERROR: auth not initialized');showToast('Auth not initialized','error');return;}
-  dbg('Auth object OK');
-  if(!auth.currentUser){dbg('WARNING: no currentUser, trying anonymous...');auth.signInAnonymously().then(function(){dbg('Anonymous auth OK');doTestWrite();}).catch(function(e){dbg('Anonymous auth FAILED: '+e.code);showToast('Auth failed: '+e.code,'error');});return;}
-  dbg('User OK: '+(auth.currentUser.uid||'anonymous'));
-  doTestWrite();
-}
-function doTestWrite(){
-  dbg('Writing test doc...');
-  var testId='_test_'+Date.now();
-  reportsRef.doc(testId).set({test:true,time:Date.now(),uid:auth.currentUser?auth.currentUser.uid:'none'}).then(function(){
-    dbg('TEST WRITE SUCCESS!');
-    showToast('Connection OK! Uploads should work.','success');
-    var cs=document.getElementById('connStatus');if(cs)cs.innerHTML='<span style="color:var(--teal);font-weight:700">&#9989; Connected & ready</span>';
-    // Clean up test doc
-    reportsRef.doc(testId).delete().catch(function(e){});
-  }).catch(function(e){
-    dbg('TEST WRITE FAILED: '+e.code+' | '+e.message);
-    var cs=document.getElementById('connStatus');
-    if(e.code==='permission-denied'){
-      if(cs)cs.innerHTML='<span style="color:var(--red);font-weight:700">&#10060; Permission denied — update Firestore rules</span>';
-      showToast('Firestore rules block writes. Go to Rules tab.','error');
-    }else{
-      if(cs)cs.innerHTML='<span style="color:var(--red);font-weight:700">&#10060; '+e.code+'</span>';
-      showToast('Connection failed: '+e.code,'error');
-    }
-  });
-}
 function ini(n){var p=n.replace('Usthad ','').trim().split(' ');return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
 function dName(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.name&&p.name.trim())||(s&&s.n)||'Former Staff';}
 function dRole(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.role&&p.role.trim())||(s&&s.role)||'';}
@@ -1394,7 +1277,10 @@ try{
   if(b)b.innerHTML='<i class="led red"></i> Offline (reload page)';
 }
 
+var syncStarted=false;
 function startFirestoreSync(){
+  if(syncStarted)return;
+  syncStarted=true;
   console.log('Starting Firestore sync...');
   try{
     load();loadHistory();initPicsListener();initAttachListener();initNoticesListener();initReportsListener();initDmListener();
@@ -1407,14 +1293,14 @@ function openProfile(id){
   var av=document.getElementById('pAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
   else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:24px">'+ini(dName(id))+'</span>';}
-  document.getElementById('pName').textContent=dName(id);
-  document.getElementById('pRole').textContent=s.role+' \u2022 '+(p.place||s.place);
+  document.getElementById('pName').textContent=dName(id)+(s?'':' (former staff)');
+  document.getElementById('pRole').textContent=(p.role||(s&&s.role)||'')+' \u2022 '+(p.place||(s&&s.place)||'');
   document.getElementById('pCoins').textContent=S.coins[id]||0;
-  document.getElementById('pRank').textContent='#'+getRank(id);
+  document.getElementById('pRank').textContent=s?('#'+getRank(id)):'\u2014';
   var hist=S.history.filter(function(h){return h.r===id;});
   document.getElementById('pAch').textContent=hist.length;
   var qa=document.getElementById('profQuickAward');
-  if(qa){qa.style.display=admin?'block':'none';if(admin)fillQaCat();}
+  if(qa){qa.style.display=(admin&&s)?'block':'none';if(admin&&s)fillQaCat();}
   renderProfHist(id);
   openModal('profOv');
 }
@@ -1469,11 +1355,6 @@ function renderProfHist(id){
     }).join(''):'<div class="empty-state">No records yet</div>';
 }
 function renderMyPage(){
-  dbg('=== My Page loaded ===');
-  dbg('Firebase db: '+(db?'OK':'MISSING'));
-  dbg('Firebase auth: '+(auth?'OK':'MISSING'));
-  dbg('Auth user: '+(auth&&auth.currentUser?'YES uid='+auth.currentUser.uid:'NO'));
-  dbg('reportsRef: '+(reportsRef?'OK':'MISSING'));
   if(!loggedInStaff)return;
   var id=loggedInStaff.id;var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
   var dmCard=document.getElementById('myDmCard');
@@ -1677,11 +1558,15 @@ function sendDmToStaff(){
 function dmTimeStr(m){
   if(!m.ts||!m.ts.toDate)return '';
   var dt=m.ts.toDate();
-  return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' \u00b7 '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' \u00b7 '+dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
 }
 function markDmRead(msgs){
   (msgs||[]).forEach(function(m){
-    if(!m.read){dmRef.doc(m.id).update({read:true}).catch(function(){});}
+    if(!m.read){
+      dmRef.doc(m.id).update({read:true}).catch(function(e){
+        console.error('markDmRead failed for message',m.id,e);
+      });
+    }
   });
 }
 function dmBubble(m,mine){
@@ -1883,7 +1768,7 @@ function submitMonthlyReport(input,di){
 function renderMyReportStatus(){
   if(!loggedInStaff)return;
   var id=loggedInStaff.id;var s=STAFF.find(function(x){return x.id===id;});
-  var p=S.profiles[id]||{};var role=p.role||s.role;
+  var p=S.profiles[id]||{};var role=p.role||(s&&s.role)||loggedInStaff.role||'';
   var duties=getDuties(role);var curKey=monthKey();
   var html='';
   duties.forEach(function(duty,di){
@@ -2004,8 +1889,10 @@ function delEntry(id,roll){
 function loadEP(){
   var id=parseInt(document.getElementById('epStaff').value);
   if(!id){document.getElementById('epFields').style.display='none';return;}
+  var s=STAFF.find(function(x){return x.id===id;});
+  if(!s){document.getElementById('epFields').style.display='none';showToast('This staff member no longer exists','error');return;}
   document.getElementById('epFields').style.display='block';
-  var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};
+  var p=S.profiles[id]||{};
   var av=document.getElementById('epAvEl');
   if(p.pic){av.style.background='none';av.innerHTML='<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
   else{av.style.background='var(--gold-soft)';av.style.display='flex';av.style.alignItems='center';av.style.justifyContent='center';av.innerHTML='<span style="color:var(--gold);font-weight:700;font-size:22px">'+ini(dName(id))+'</span>';}
