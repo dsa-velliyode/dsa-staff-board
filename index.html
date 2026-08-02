@@ -619,6 +619,21 @@ input[type="file"]{padding:8px}
 
       <div id="subtab-editProf" style="display:none">
         <div class="card">
+          <div class="eyebrow">Manage Staff</div>
+          <div id="staffRosterList" style="margin-bottom:12px"></div>
+          <div style="border-top:1px solid var(--border);padding-top:12px">
+            <label>Add New Staff</label>
+            <input type="text" id="nsName" placeholder="Full name">
+            <input type="text" id="nsRole" placeholder="Role / Designation">
+            <input type="text" id="nsPlace" placeholder="Place">
+            <input type="text" id="nsPin" placeholder="Login PIN (numbers)">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+              <input type="checkbox" id="nsAdmin" style="width:auto;margin:0"> Give this person Principal-level (admin) access
+            </label>
+            <button class="btn btn-primary" style="width:100%" onclick="addStaffMember()">Add Staff</button>
+          </div>
+        </div>
+        <div class="card">
           <label>Staff member</label>
           <select id="epStaff" onchange="loadEP()"><option value="">-- Select --</option></select>
           <div id="epFields" style="display:none">
@@ -730,8 +745,15 @@ input[type="file"]{padding:8px}
     <div id="profQuickAward" style="display:none;margin-bottom:14px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--paper)">
       <label style="font-size:11px">Quick Award</label>
       <div style="display:flex;gap:6px">
-        <select id="qaCat" style="flex:1;margin-bottom:0"></select>
+        <select id="qaCat" onchange="fillQaCoins()" style="flex:1;margin-bottom:0"></select>
+        <input type="number" id="qaCoins" style="width:64px;margin-bottom:0" title="Coins (editable)">
         <button class="btn btn-gold btn-sm" onclick="quickAward()">Award</button>
+      </div>
+      <input type="text" id="qaNote" placeholder="Note / remarks (optional)" style="margin-top:6px;margin-bottom:0">
+      <div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <input type="text" id="qaNoticeTitle" placeholder="Notice title" style="flex:1;min-width:0;margin-bottom:0">
+        <input type="text" id="qaNoticeMsg" placeholder="Notice message" style="flex:2;min-width:0;margin-bottom:0">
+        <button class="btn btn-outline btn-sm" onclick="quickNotice()">Post</button>
       </div>
     </div>
     <div class="eyebrow">History</div>
@@ -763,7 +785,7 @@ input[type="file"]{padding:8px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
-const STAFF=[
+const DEFAULT_STAFF=[
  {id:1,n:"Usthad Sharafuddeen Hudawi",place:"Kondotty",role:"Principal",pin:"80241",isAdmin:true},
  {id:2,n:"Usthad Qasim Darimi",place:"Panthippoyil",role:"Administrator & Welfare Coordinator",pin:"999"},
  {id:3,n:"Ismayil Wafy",place:"Velliyode",role:"Staff Secretary",pin:"397"},
@@ -773,7 +795,7 @@ const STAFF=[
  {id:7,n:"Usthad Faris Hudawi",place:"Feroke",role:"IT Coordinator & S3 Class Teacher",pin:"329"},
  {id:8,n:"Usthad Rabeeh Hudawi",place:"Aroor",role:"ILM Coordinator & S1 Class Teacher",pin:"440"}
 ];
-const ADMIN=STAFF[0];
+let STAFF=JSON.parse(JSON.stringify(DEFAULT_STAFF));
 const DEFAULT_SECTIONS=[
   {id:'sec_common',name:'Common Duties',cats:[
     {id:'c_masjid',name:'Masjid Duty',coins:2},
@@ -951,9 +973,9 @@ function doTestWrite(){
   });
 }
 function ini(n){var p=n.replace('Usthad ','').trim().split(' ');return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
-function dName(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.name&&p.name.trim())||s.n;}
-function dRole(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.role&&p.role.trim())||s.role;}
-function dPlace(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.place&&p.place.trim())||s.place;}
+function dName(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.name&&p.name.trim())||(s&&s.n)||'Former Staff';}
+function dRole(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.role&&p.role.trim())||(s&&s.role)||'';}
+function dPlace(id){var s=STAFF.find(function(x){return x.id===id;});var p=S.profiles[id]||{};return(p.place&&p.place.trim())||(s&&s.place)||'';}
 function avatarHTML(id,size,fs){
   size=size||42;fs=fs||13;
   var p=S.profiles[id]||{};
@@ -988,6 +1010,7 @@ function showSub(t,btn){
   if(t==='hist')renderHist();
   if(t==='notices')renderNoticesAdmin();
   if(t==='messages'){fillDmToStaff();renderAdminDm();}
+  if(t==='editProf')renderStaffRoster();
   if(t==='submissions')renderSubmissionsAdmin();
 }
 
@@ -1031,11 +1054,11 @@ function logout(){
 
 /* ── FIRESTORE SYNC ── */
 function stateForSync(){
-  var copy=JSON.parse(JSON.stringify({catSections:S.catSections,profiles:S.profiles}));
+  var copy=JSON.parse(JSON.stringify({catSections:S.catSections,profiles:S.profiles,roster:STAFF}));
   Object.keys(copy.profiles||{}).forEach(function(k){if(copy.profiles[k])delete copy.profiles[k].pic;});
   return copy;
 }
-function cacheLocal(){try{localStorage.setItem('sadad_staff_v2',JSON.stringify({catSections:S.catSections,profiles:S.profiles,history:S.history}));}catch(e){}}
+function cacheLocal(){try{localStorage.setItem('sadad_staff_v2',JSON.stringify({catSections:S.catSections,profiles:S.profiles,history:S.history,roster:STAFF}));}catch(e){}}
 function save(){
   cacheLocal();
   docRef.set(stateForSync()).catch(function(e){console.error('Save failed',e);});
@@ -1055,6 +1078,7 @@ function load(){
     if(snap.exists){
       var d=snap.data();
       S.profiles=d.profiles||{};
+      STAFF=(d.roster&&d.roster.length)?d.roster:JSON.parse(JSON.stringify(DEFAULT_STAFF));
       if(d.catSections&&d.catSections.length){
         S.catSections=d.catSections;
       }else if(d.cats&&d.cats.length){
@@ -1402,16 +1426,35 @@ function fillQaCat(){
     (sec.cats||[]).forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.coins+')';og.appendChild(o);});
     sc.appendChild(og);
   });
+  fillQaCoins();
+}
+function fillQaCoins(){
+  var cat=findCat(document.getElementById('qaCat').value);
+  var ci=document.getElementById('qaCoins');
+  if(ci&&cat)ci.value=cat.coins;
 }
 function quickAward(){
   if(!admin||profRoll<1)return;
   var catId=document.getElementById('qaCat').value;var cat=findCat(catId);if(!cat)return;
+  var coins=parseInt(document.getElementById('qaCoins').value);if(isNaN(coins)){showToast('Enter a valid coin amount','error');return;}
+  var note=(document.getElementById('qaNote')||{value:''}).value.trim();
   var id=profRoll;var now=new Date();
-  historyRef.add({r:id,name:dName(id),cat:cat.name,coins:cat.coins,note:'',addedBy:dName(admin.id),
+  historyRef.add({r:id,name:dName(id),cat:cat.name,coins:coins,note:note,addedBy:dName(admin.id),
     date:now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear(),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
-    showToast('Awarded '+cat.coins+' coins to '+dName(id)+'!','success');
+    showToast('Awarded '+coins+' coins to '+dName(id)+'!','success');
     playAwardSound();confetti(40);
+    var noteEl=document.getElementById('qaNote');if(noteEl)noteEl.value='';
   }).catch(function(e){console.error(e);showToast('Failed to save','error');});
+}
+function quickNotice(){
+  if(!admin)return;
+  var title=document.getElementById('qaNoticeTitle').value.trim();
+  var msg=document.getElementById('qaNoticeMsg').value.trim();
+  if(!title||!msg){showToast('Enter both notice title and message!','error');return;}
+  noticesRef.add({title:title,msg:msg,addedBy:dName(admin.id),ts:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    showToast('Notice posted!','success');
+    document.getElementById('qaNoticeTitle').value='';document.getElementById('qaNoticeMsg').value='';
+  }).catch(function(e){console.error(e);showToast('Failed to post notice','error');});
 }
 function renderProfHist(id){
   var hist=S.history.filter(function(h){return h.r===id;}).slice().reverse();
@@ -1556,7 +1599,7 @@ function initDmListener(){
   if(!dmRef)return;
   dmRef.onSnapshot({includeMetadataChanges:true},function(snap){
     var arr=[];
-    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,staffId:d.staffId,sender:d.sender,msg:d.msg,ts:d.ts,attData:d.attData,attType:d.attType,attName:d.attName});});
+    snap.forEach(function(doc){var d=doc.data();arr.push({id:doc.id,staffId:d.staffId,sender:d.sender,msg:d.msg,ts:d.ts,attData:d.attData,attType:d.attType,attName:d.attName,read:!!d.read});});
     arr.sort(function(a,b){var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0;var tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0;return ta-tb;});
     S.dm=arr;
     if(loggedInStaff)renderMyDm();
@@ -1636,16 +1679,23 @@ function dmTimeStr(m){
   var dt=m.ts.toDate();
   return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' \u00b7 '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 }
+function markDmRead(msgs){
+  (msgs||[]).forEach(function(m){
+    if(!m.read){dmRef.doc(m.id).update({read:true}).catch(function(){});}
+  });
+}
 function dmBubble(m,mine){
   var att='';
   if(m.attData){
     att='<div style="margin-top:4px"><a href="'+m.attData+'" download="'+(m.attName||'attachment')+'" onclick="event.stopPropagation()" style="font-size:11px;text-decoration:underline;color:inherit">&#128206; '+(m.attType==='pdf'?'PDF':'Photo')+'</a></div>';
   }
   var delBtn=mine?'<span onclick="deleteDm(\''+m.id+'\')" title="Delete" style="cursor:pointer;margin-left:8px;opacity:.55">&times;</span>':'';
+  var status=mine?'<span style="font-size:9.5px;color:'+(m.read?'var(--teal)':'var(--ink-faint)')+'">'+(m.read?'\u2713\u2713 Seen':'\u2713 Sent')+'</span>':'';
   return '<div style="display:flex;'+(mine?'justify-content:flex-end':'justify-content:flex-start')+';margin-bottom:6px">'
     +'<div style="max-width:78%;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.4;background:'+(mine?'var(--gold-light)':'var(--paper)')+';border:1px solid var(--border)">'
     +(m.msg?('<div>'+m.msg+'</div>'):'')+att
-    +'<div style="display:flex;justify-content:flex-end;align-items:center;margin-top:3px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;gap:8px">'
+    +status
     +'<span style="font-size:9.5px;color:var(--ink-faint)">'+dmTimeStr(m)+'</span>'+delBtn
     +'</div></div></div>';
 }
@@ -1656,6 +1706,7 @@ function renderMyDm(){
   el.innerHTML=thread.length?thread.map(function(m){return dmBubble(m,m.sender==='staff');}).join('')
     :'<div class="empty-state" style="font-size:11.5px">No messages yet \u2014 send a private note to the Principal below.</div>';
   el.scrollTop=el.scrollHeight;
+  markDmRead(thread.filter(function(m){return m.sender==='principal';}));
 }
 function renderAdminDm(){
   var el=document.getElementById('adminDmList');if(!el)return;
@@ -1676,6 +1727,7 @@ function renderAdminDm(){
       +'<div id="dmReplyFileName_'+s.id+'" style="font-size:11px;color:var(--ink-faint);margin-top:4px">'+stagedName+'</div>'
       +'</div>';
   }).join('');
+  withMsgs.forEach(function(s){markDmRead(byStaff[s.id].filter(function(m){return m.sender==='staff';}));});
 }
 var ATTACH={};
 function initAttachListener(){
@@ -1974,6 +2026,41 @@ function saveProfile(){
   S.profiles[id].place=document.getElementById('epPlace').value.trim();
   save();showToast('Profile saved!','success');
 }
+function renderStaffRoster(){
+  var el=document.getElementById('staffRosterList');if(!el)return;
+  el.innerHTML=STAFF.map(function(s){
+    return '<div class="hist-row"><span style="flex:1">'+s.n+(s.isAdmin?' <span style="color:var(--gold);font-weight:700;font-size:11px">(Principal)</span>':'')
+      +'<div style="font-size:11px;color:var(--ink-faint)">'+s.role+(s.place?', '+s.place:'')+' &bull; PIN '+s.pin+'</div></span>'
+      +'<button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red)" onclick="removeStaffMember('+s.id+')">Remove</button></div>';
+  }).join('');
+}
+function addStaffMember(){
+  if(!admin)return;
+  var name=document.getElementById('nsName').value.trim();
+  var role=document.getElementById('nsRole').value.trim();
+  var place=document.getElementById('nsPlace').value.trim();
+  var pin=document.getElementById('nsPin').value.trim();
+  var isAdmin=document.getElementById('nsAdmin').checked;
+  if(!name||!pin){showToast('Enter at least a name and a PIN','error');return;}
+  if(STAFF.some(function(s){return s.pin===pin;})){showToast('That PIN is already used by another staff member','error');return;}
+  var maxId=STAFF.reduce(function(m,s){return Math.max(m,s.id);},0);
+  STAFF.push({id:maxId+1,n:name,role:role||'Staff',place:place||'',pin:pin,isAdmin:isAdmin});
+  save();
+  document.getElementById('nsName').value='';document.getElementById('nsRole').value='';
+  document.getElementById('nsPlace').value='';document.getElementById('nsPin').value='';
+  document.getElementById('nsAdmin').checked=false;
+  renderStaffRoster();fillSelects();fillDmToStaff();
+  showToast('Staff member added','success');
+}
+function removeStaffMember(id){
+  var s=STAFF.find(function(x){return x.id===id;});if(!s)return;
+  if(s.isAdmin&&STAFF.filter(function(x){return x.isAdmin;}).length<=1){showToast('Cannot remove the only Principal account','error');return;}
+  if(!confirm('Remove '+s.n+' from the staff list? Their coin and report history will be kept, but they will no longer be able to log in or appear on the Board.'))return;
+  STAFF=STAFF.filter(function(x){return x.id!==id;});
+  save();
+  renderStaffRoster();fillSelects();fillDmToStaff();renderBoard();
+  showToast('Staff member removed','success');
+}
 
 /* ── CATEGORIES (grouped into sections) ── */
 function addSection(){
@@ -2225,6 +2312,6 @@ document.getElementById('coinDate').value=todayISO();
 document.getElementById('dedDate').value=todayISO();
 renderBoard();
 </script>
-<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r12</div>
+<div style="text-align:center;font-size:9px;color:#999;padding:6px 0 14px">build 2026-08-01-r13</div>
 <button class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Scroll to top">&#8593;</button></body>
 </html>
