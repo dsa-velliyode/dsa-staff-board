@@ -866,7 +866,7 @@ function avatarHTML(id,size,fs){
   if(p.pic)return '<img src="'+p.pic+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border)">';
   return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--gold-soft);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;font-size:'+fs+'px;flex-shrink:0;border:1.5px solid var(--border)">'+ini(dName(id))+'</div>';
 }
-function sortedSTAFF(){return[...STAFF].sort(function(a,b){return(S.coins[b.id]||0)-(S.coins[a.id]||0);});}
+function sortedSTAFF(){return STAFF.filter(function(s){return !s.isAdmin;}).sort(function(a,b){return(S.coins[b.id]||0)-(S.coins[a.id]||0);});}
 function getRank(id){var sorted=sortedSTAFF();return sorted.findIndex(function(s){return s.id===id;})+1;}
 
 function showToast(msg,type){
@@ -1156,6 +1156,8 @@ function monthlyTopStaff(){
   });
   var bestId=null,bestVal=0;
   Object.keys(totals).forEach(function(id){
+    var s=STAFF.find(function(x){return x.id===parseInt(id);});
+    if(s&&s.isAdmin)return;
     if(totals[id]>bestVal){bestVal=totals[id];bestId=parseInt(id);}
   });
   return bestId?{id:bestId,coins:bestVal}:null;
@@ -1297,11 +1299,11 @@ function openProfile(id){
   document.getElementById('pName').textContent=dName(id)+(s?'':' (former staff)');
   document.getElementById('pRole').textContent=(p.role||(s&&s.role)||'')+' \u2022 '+(p.place||(s&&s.place)||'');
   document.getElementById('pCoins').textContent=S.coins[id]||0;
-  document.getElementById('pRank').textContent=s?('#'+getRank(id)):'\u2014';
+  document.getElementById('pRank').textContent=(s&&!s.isAdmin)?('#'+getRank(id)):'\u2014';
   var hist=S.history.filter(function(h){return h.r===id;});
   document.getElementById('pAch').textContent=hist.length;
   var qa=document.getElementById('profQuickAward');
-  if(qa){qa.style.display=(admin&&s)?'block':'none';if(admin&&s)fillQaCat();}
+  if(qa){qa.style.display=(admin&&s&&!s.isAdmin)?'block':'none';if(admin&&s&&!s.isAdmin)fillQaCat();}
   renderProfHist(id);
   openModal('profOv');
 }
@@ -1366,7 +1368,7 @@ function renderMyPage(){
   document.getElementById('myName').textContent=dName(s.id);
   document.getElementById('myRole').textContent=(p.role||s.role)+' \u2022 '+(p.place||s.place);
   document.getElementById('myCoins').textContent=S.coins[id]||0;
-  document.getElementById('myRank').textContent='#'+getRank(id);
+  document.getElementById('myRank').textContent=s.isAdmin?'\u2014':('#'+getRank(id));
   var hist=S.history.filter(function(h){return h.r===id;});
   document.getElementById('myAch').textContent=hist.length;
   renderMyReportStatus();
@@ -2058,7 +2060,7 @@ function buildReportData(){
     if(b.catIdx[h.cat]===undefined){b.catIdx[h.cat]=b.cats.length;b.cats.push({name:h.cat,coins:h.coins});}
     else{b.cats[b.catIdx[h.cat]].coins+=h.coins;}
   });
-  var rows=STAFF.map(function(s){
+  var rows=STAFF.filter(function(s){return !s.isAdmin;}).map(function(s){
     var b=byStaff[s.id]||{count:0,coins:0,cats:[]};var p=S.profiles[s.id]||{};
     return{id:s.id,name:dName(s.id),role:p.role||s.role,count:b.count,coins:b.coins,cats:b.cats,pic:p.pic};
   }).sort(function(a,b){return b.coins-a.coins;});
@@ -2112,7 +2114,7 @@ function renderTrendChart(){
       }
     });
   });
-  var activeStaff=STAFF.filter(function(s){return perStaff[s.id].some(function(v){return v!==0;});});
+  var activeStaff=STAFF.filter(function(s){return !s.isAdmin&&perStaff[s.id].some(function(v){return v!==0;});});
   if(titleEl)titleEl.textContent=(type==='week'?'Last 8 Weeks':type==='month'?'Last 6 Months':'Last 5 Years')+' \u2014 Staff Progress';
   if(trendChartObj){trendChartObj.destroy();trendChartObj=null;}
   if(!activeStaff.length){
